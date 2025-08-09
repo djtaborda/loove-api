@@ -9,6 +9,7 @@ dotenv.config();
 const app = express();
 app.use(cors());
 
+// Configuração do Wasabi S3
 const s3 = new S3Client({
   region: process.env.WASABI_REGION,
   endpoint: process.env.WASABI_ENDPOINT,
@@ -18,19 +19,27 @@ const s3 = new S3Client({
   }
 });
 
+// Rota para listar músicas e gerar URLs temporárias
 app.get("/musicas", async (req, res) => {
   try {
-    const data = await s3.send(new ListObjectsV2Command({ Bucket: process.env.WASABI_BUCKET }));
+    const data = await s3.send(new ListObjectsV2Command({
+      Bucket: process.env.WASABI_BUCKET
+    }));
+
     const files = await Promise.all(
       data.Contents.map(async (file) => {
         const url = await getSignedUrl(
           s3,
-          new GetObjectCommand({ Bucket: process.env.WASABI_BUCKET, Key: file.Key }),
+          new GetObjectCommand({
+            Bucket: process.env.WASABI_BUCKET,
+            Key: file.Key
+          }),
           { expiresIn: 3600 }
         );
         return { nome: file.Key, url };
       })
     );
+
     res.json(files);
   } catch (err) {
     console.error(err);
@@ -38,23 +47,14 @@ app.get("/musicas", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`API rodando na porta ${process.env.PORT}`);
+// Rota de teste
+app.get("/", (req, res) => {
+  res.json({ ok: true, service: "loove-api", ts: new Date().toISOString() });
 });
 
-// Rota de teste para saber se a API está de pé
-app.get('/', (req, res) => {
-  res.json({ ok: true, service: 'loove-api', ts: new Date().toISOString() });
-});
-
-// Rota de health check
-app.get('/api/health', (_, res) => {
-  res.json({ ok: true });
-});
-
-// Inicializa o servidor
+// Inicializa servidor
 const port = process.env.PORT || 3001;
-app.listen(port, '0.0.0.0', () => {
-  console.log('API rodando na porta', port);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`API rodando na porta ${port}`);
 });
 
