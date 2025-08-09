@@ -20,32 +20,69 @@ const s3 = new S3Client({
 });
 
 // Rota para listar músicas e gerar URLs temporárias
-app.get("/musicas", async (req, res) => {
+app.get('/tracks', async (req, res) => {
   try {
+    const prefix = (req.query.prefix || '').toString();         // ex: "ACADEMIA/"
+    const limit  = Math.min(parseInt(req.query.limit || '50'), 200);
+    const token  = req.query.token ? req.query.token.toString() : undefined;
+    const q      = (req.query.q || '').toString().toLowerCase();
+
     const data = await s3.send(new ListObjectsV2Command({
-      Bucket: process.env.WASABI_BUCKET
+      Bucket: process.env.WASABI_BUCKET,
+      Prefix: prefix,
+      ContinuationToken: token,
+      MaxKeys: limit,
     }));
 
-    const files = await Promise.all(
-      data.Contents.map(async (file) => {
-        const url = await getSignedUrl(
-          s3,
-          new GetObjectCommand({
-            Bucket: process.env.WASABI_BUCKET,
-            Key: file.Key
-          }),
-          { expiresIn: 3600 }
-        );
-        return { nome: file.Key, url };
-      })
-    );
+    const all = (data.Contents || [])
+      .filter(o => o.Key && !o.Key.endsWith('/'))
+      .map(file => {
+        const key = file.Key;
+        const fileName = key.split('/').pop() || key;
+        const title = fileName
+          .replace(/\.(mp3|m4a|aac|wav|flac)$/i, '')
+          .replace(/[_]+/g, ' ')
+          .trim();
+        return { key, title };
+      });
 
-    res.json(files);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erro ao buscar músicas" });
+    const filtered = q ? all.filter(i => i.title.toLowerCase().includes(q)) : all;
+
+    // gera URL assinada curta (3 min) — suficiente para tocar
+    const items = await Promise.all(filtered.map(async ({ key, title }) => {
+      const url = await getSignedUrl(
+        s3,
+        new GetObjectCommand({ Bucket: process.env.WASABI_BUCKET, Key: key }),
+        { expiresIn: 180 }
+      );
+      return { key, title, url };
+    }));
+
+    res.json({
+      items,
+      nextToken: data.IsTruncated ? data.NextContinuationToken : null
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'list_failed' });
   }
 });
+// POST /stream/:key (key URL-encoded)
+app.post('/stream/:key', async (req, res) => {
+  try {
+    const key = decodeURIComponent(req.params.key);
+    const url = await getSignedUrl(
+      s3,
+      new GetObjectCommand({ Bucket: process.env.WASABI_BUCKET, Key: key }),
+      { expiresIn: 300 }
+    );
+    res.json({ url });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'sign_failed' });
+  }
+});
+
 
 // Rota de teste
 app.get("/", (req, res) => {
