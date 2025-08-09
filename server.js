@@ -41,3 +41,20 @@ app.get("/musicas", async (req, res) => {
 app.listen(process.env.PORT, () => {
   console.log(`API rodando na porta ${process.env.PORT}`);
 });
+
+// Rota de teste para saber se a API está de pé
+app.get('/', (req, res) => {
+  res.json({ ok: true, service: 'loove-api', ts: new Date().toISOString() });
+});
+
+// Rota de health check
+app.get('/api/health', (_, res) => {
+  res.json({ ok: true });
+});
+
+// Inicializa o servidor
+const port = process.env.PORT || 3001;
+app.listen(port, '0.0.0.0', () => {
+  console.log('API rodando na porta', port);
+});
+
