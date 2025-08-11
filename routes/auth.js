@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { createUser, findUserByEmail, saveUser } from '../lib/db.js';
-import { validatePassword, signSession } from '../lib/auth.js';
+import { createUser, findUserByEmail, saveUser, validatePassword } from '../lib/db.js';
+import { signSession } from '../lib/auth.js';
 
 const router = Router();
 
