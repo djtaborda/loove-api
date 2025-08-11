@@ -1,8 +1,9 @@
 import { Router } from 'express';
+// IMPORT CORRETO (uma linha só, sem quebras):
 import { createUser, validatePassword, findUserByEmail, saveUser } from '../lib/db.js';
-lib/db.js';
-import { signSession } from '../lib/auth.js';
-import { sendMail } from '../lib/mail.js';
+
+const router = Router();
+export default router;
 const r = Router();
 r.post('/register', async (req, res) => {
 const { name, email, password } = req.body || {};
