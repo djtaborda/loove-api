@@ -1,0 +1,9 @@
+{
+"name": "Loove Music",
+"short_name": "Loove",
+"start_url": "/",
+"display": "standalone",
+"background_color": "#121212",
+"theme_color": "#FF6F00",
+"icons": []
+}
