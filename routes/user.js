@@ -9,7 +9,6 @@ r.get('/me', async (req, res) => {
 const ent = await getEntitlements(req.user.uid);
 res.json({ uid: req.user.uid, email: req.user.email, plan: ent.plan });
 });
-14
 // Favoritos
 r.get('/favorites', async (req, res) => {
 res.json(await readFavorites(req.user.uid));
@@ -54,7 +53,6 @@ pl.name = name; pl.updatedAt = new Date().toISOString();
 await writePlaylists(req.user.uid, data);
 res.json({ ok: true });
 });
-15
 r.delete('/playlists/:id', async (req, res) => {
 const { id } = req.params;
 const data = await readPlaylists(req.user.uid);
