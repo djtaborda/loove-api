@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, validatePassword, findUserByEmail, saveUser } from '../
+import { createUser, validatePassword, findUserByEmail, saveUser } from '../lib/db.js';
 lib/db.js';
 import { signSession } from '../lib/auth.js';
 import { sendMail } from '../lib/mail.js';
