@@ -30,7 +30,6 @@ user.email, plan: user.plan } });
 });
 r.post('/logout', (req, res) => {
 res.clearCookie('session');
-11
 res.json({ ok: true });
 });
 r.post('/forgot', async (req, res) => {
