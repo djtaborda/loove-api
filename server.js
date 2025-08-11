@@ -39,6 +39,9 @@ app.use('/user', userRoutes);
 app.use('/admin', adminRoutes);
 app.use('/webhooks', webhookRoutes);
 app.use('/push', pushRoutes);
+app.get('/health', (req, res) => {
+  res.json({ ok: true, uptime: process.uptime() });
+});
 // Static do frontend (build Vite)
 const clientDist = path.join(__dirname, 'client', 'dist');
 app.use(express.static(clientDist));
