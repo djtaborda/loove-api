@@ -5,7 +5,6 @@ import { authGuard } from '../lib/auth.js';
 import { getEntitlements } from '../lib/db.js';
 import { addPlayTag } from '../lib/tags.js';
 const r = Router();
-12
 let INDEX_CACHE = { keys: [], at: 0 };
 const INDEX_TTL_MS = 10 * 60 * 1000; // 10 min
 async function refreshIndexIfNeeded() {
@@ -50,7 +49,6 @@ return res.json({ items: filtered.map(mapObj), nextToken: null });
 const data = await listObjects({ prefix, token });
 const items = (data.Contents || []).filter(o =>
 isAudio(o.Key)).map(mapObj);
-13
 res.json({ items, nextToken: data.IsTruncated ?
 data.NextContinuationToken : null });
 });
