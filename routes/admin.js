@@ -1,31 +1,28 @@
 import { Router } from 'express';
-import { adminGuard, authGuard } from '../lib/auth.js';
-import { getJson, putJson } from '../lib/s3.js';
-import { sendPushTo } from '../lib/push.js';
-const r = Router();
-r.use(authGuard, adminGuard);
-r.post('/push/send', async (req, res) => {
-const { targets = [], title, body, icon, url } = req.body || {};
-for (const uid of targets) await sendPushTo(uid, { title, body, icon,
-url });
-res.json({ ok: true });
+import { pushEnabled, sendPush } from '../lib/push.js';
+
+const router = Router();
+
+/**
+ * Endpoint simples para enviar push (somente se VAPID estiver configurado).
+ * Body esperado:
+ * {
+ *   "subscription": { ... },   // objeto de inscrição do navegador
+ *   "payload": { "title": "...", "body": "...", "url": "..." } // opcional
+ * }
+ */
+router.post('/push', async (req, res) => {
+  if (!pushEnabled) {
+    return res.json({ ok: false, skipped: true, reason: 'push-disabled' });
+  }
+  const { subscription, payload } = req.body || {};
+  if (!subscription) return res.status(400).json({ error: 'missing-subscription' });
+
+  const result = await sendPush(subscription, payload || { title: 'Loove Music', body: 'Ping' });
+  return res.json(result);
 });
-r.post('/push/schedule', async (req, res) => {
-const { when, targets = [], title, body, icon, url } = req.body || {};
-const data = await safeRead('db/admin/notifications.json');
-data.queue = data.queue || [];
-data.queue.push({ id: Date.now().toString(36), when, targets, title, body,
-icon, url, sent: false });
-await putJson('db/admin/notifications.json', data);
-res.json({ ok: true });
-});
-r.get('/stats', async (req, res) => {
-// simples placeholder que lê contadores básicos
-const users = await safeList('db/users/');
-const playlists = await safeList('db/users/'); // contagem grosseira
-res.json({ users: users.length, playlists: playlists.length });
-});
-async function safeRead(key) { try { return await getJson(key); } catch {
-return {}; } }
-async function safeList(prefix) { return []; }
-export default r;
+
+// ping do painel admin (útil pra checar auth depois)
+router.get('/health', (_req, res) => res.json({ ok: true }));
+
+export default router;
