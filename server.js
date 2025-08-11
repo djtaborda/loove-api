@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-3
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
@@ -48,7 +47,6 @@ app.get('/service-worker.js', (req, res) =>
 res.sendFile(path.join(__dirname, 'client', 'service-worker.js')));
 app.get('/manifest.webmanifest', (req, res) =>
 res.sendFile(path.join(__dirname, 'client', 'manifest.webmanifest')));
-4
 // SPA fallback
 app.get('*', (req, res) => {
 res.sendFile(path.join(clientDist, 'index.html'));
