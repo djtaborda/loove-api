@@ -8,6 +8,5 @@ return (
 value={search} onChange={(e)=> setSearch(e.target.value)} />
 </div>
 </div>
-24
 );
 }
