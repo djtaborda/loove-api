@@ -39,3 +39,40 @@ router.post('/logout', (req, res) => {
 });
 
 export default router;
+// --- INÍCIO: login de convidado temporário (DEV) ---
+import { saveUser } from '../lib/db.js'; // deixe este import no topo do arquivo se preferir
+const DEV_OPEN = process.env.DEV_OPEN === '1';
+
+router.get('/guest', async (req, res) => {
+  try {
+    if (!DEV_OPEN) {
+      return res.status(404).json({ error: 'guest login desabilitado' });
+    }
+
+    // cria/atualiza um usuário "guest" simples
+    const guest = {
+      uid: 'guest',
+      email: 'guest@loove',
+      name: 'Guest',
+      plan: 'free'
+      // sem password
+    };
+    await saveUser(guest); // upsert
+
+    const token = signSession({ uid: guest.uid, email: guest.email });
+    res.cookie('session', token, {
+      httpOnly: true,
+      signed: true,
+      sameSite: 'lax',
+      secure: true,                // ok porque o Render usa HTTPS
+      maxAge: 30 * 24 * 3600 * 1000
+    });
+
+    // redireciona para a home já logado
+    return res.redirect('/');
+  } catch (e) {
+    console.error('guest login error', e);
+    return res.status(500).json({ error: 'guest_login_failed' });
+  }
+});
+// --- FIM: login de convidado temporário (DEV) ---
