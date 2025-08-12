@@ -64,7 +64,7 @@
       <div id="authInfo" class="pill hidden"></div>
     </header>
 
-    <!-- LOGIN VIEW -->
+    <!-- LOGIN -->
     <section id="viewLogin" class="login card">
       <h2 style="margin:0 0 6px 0;">Entrar</h2>
       <p class="muted" style="margin:0 0 14px 0;">Digite seu PIN para acessar o app.</p>
@@ -81,7 +81,7 @@
       </div>
     </section>
 
-    <!-- APP VIEW -->
+    <!-- APP -->
     <section id="viewApp" class="card hidden">
       <div class="topbar">
         <div class="row" style="gap:8px">
@@ -107,10 +107,8 @@
     const msg = el("msg");
     const authInfo = el("authInfo");
     const result = el("result");
-
     const TOKEN_KEY = "loove_token";
 
-    // Utilitário para chamadas autenticadas
     async function api(path, options = {}) {
       const token = localStorage.getItem(TOKEN_KEY);
       const headers = Object.assign(
@@ -124,96 +122,5 @@
       return data;
     }
 
-    function showLogin() {
-      viewLogin.classList.remove("hidden");
-      viewApp.classList.add("hidden");
-      authInfo.classList.add("hidden");
-      msg.textContent = "";
-      el("pin").value = "";
-      el("pin").focus();
-    }
-
-    function showApp(user) {
-      viewLogin.classList.add("hidden");
-      viewApp.classList.remove("hidden");
-      authInfo.classList.remove("hidden");
-      authInfo.textContent = "Logado • expira em 7 dias";
-      el("status").textContent = "logado";
-    }
-
-    // Verifica sessão ao abrir
-    (async function init(){
-      try {
-        const me = await api("/api/me");
-        showApp(me.user);
-      } catch {
-        showLogin();
-      }
-    })();
-
-    // Login
-    el("btnLogin").addEventListener("click", async () => {
-      const pin = el("pin").value.trim();
-      if (pin.length < 3) {
-        msg.className = "error";
-        msg.textContent = "Digite pelo menos 3 dígitos.";
-        return;
-      }
-      msg.className = "muted";
-      msg.textContent = "Entrando...";
-      el("btnLogin").disabled = true;
-
-      try {
-        const data = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pin })
-        }).then(r => r.json());
-
-        if (!data.token) throw data;
-        localStorage.setItem(TOKEN_KEY, data.token);
-        msg.className = "success";
-        msg.textContent = "Login realizado!";
-        showApp();
-      } catch (e) {
-        msg.className = "error";
-        msg.textContent = e?.error || "Falha no login";
-      } finally {
-        el("btnLogin").disabled = false;
-      }
-    });
-
-    // Mostrar/ocultar PIN
-    el("togglePin").addEventListener("click", () => {
-      const p = el("pin");
-      p.type = p.type === "password" ? "text" : "password";
-      p.focus();
-    });
-
-    // Sair
-    el("btnLogout").addEventListener("click", () => {
-      localStorage.removeItem(TOKEN_KEY);
-      result.innerHTML = "";
-      showLogin();
-    });
-
-    // Testar sessão (/api/me)
-    el("btnCheck").addEventListener("click", async () => {
-      result.innerHTML = "";
-      try {
-        const me = await api("/api/me");
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `<div>Usuário logado ✅</div><div class="spacer"></div><code class="muted">${JSON.stringify(me.user)}</code>`;
-        result.appendChild(div);
-      } catch (e) {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `<div>Token inválido ❌</div><div class="spacer"></div><code class="error">${e?.error || "Erro"}</code>`;
-        result.appendChild(div);
-        el("status").textContent = "deslogado";
-      }
-    });
-  </script>
-</body>
-</html>
+    function showLogin(){ viewLogin.classList.remove("hidden"); viewApp.classList.add("hidden"); authInfo.classList.add("hidden"); msg.textContent=""; el("pin").value=""; el("pin").focus(); }
+    function showApp(){ viewLogin.classList.add("hidden"); viewApp.classList.remove("hidden"); authInfo.classList.remove("hidden"); authIn
