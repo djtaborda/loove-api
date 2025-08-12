@@ -163,6 +163,7 @@
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
+  const PREMIUM_PREFIX = "PREMIUM/"; // <<< IMPORTANTÍSSIMO: maiúsculas, igual ao Wasabi
   const el = id => document.getElementById(id);
 
   function show(id){ el(id).style.display = ""; }
@@ -219,20 +220,17 @@
     });
   }
 
-  // ===== Premium: carregar pastas reais e ligar chips com fuzzy match =====
+  // ===== Premium: carregar pastas reais e ligar chips (fuzzy) =====
   function slug(s){
     return (s||"")
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"") // tira acentos
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
       .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
   }
   function bestMatch(targetSlug, options){
-    // 1) igual
     let hit = options.find(o => o.slug === targetSlug);
     if(hit) return hit;
-    // 2) contém (ambos os lados)
     hit = options.find(o => o.slug.includes(targetSlug) || targetSlug.includes(o.slug));
     if(hit) return hit;
-    // 3) maior interseção de substrings
     let best=null, score=0;
     options.forEach(o=>{
       const common = o.slug.split("-").filter(p=> targetSlug.includes(p)).join("-");
@@ -243,43 +241,36 @@
   }
 
   async function loadPremiumFolders(){
-    const d = await api("/api/folders?prefix=premium/");
+    const d = await api("/api/folders?prefix="+encodeURIComponent(PREMIUM_PREFIX));
     premiumFolders = (d.folders || []).map(f=>{
-      const name = (f.name||f.prefix).replace(/^premium\//,"").replace(/\/$/,"");
+      const name = (f.name||f.prefix).replace(new RegExp("^"+PREMIUM_PREFIX.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')), "").replace(/\/$/,"");
       return { prefix:f.prefix, name, slug: slug(name) };
     });
 
     const synonyms = {
-      top1000: ["top-1000","top-1-000","top1000","top1k"],
-      summer: ["summer-eletro-hits","summer","eletro-hits"],
+      top1000: ["top-1000","top-1-000","top1000","top1k","top - mundo","top - brasil"], // ajuste conforme desejar
+      summer: ["summer-eletro-hits","summer","eletro-hits","summer eletro hits"],
       jovempan: ["jovem-pan","jovempan","pan"],
       setsremix: ["sets-remix","sets","remix","dj-sets"],
       secret: ["playlist-secreta","secreta","secret"],
-      flashbackgold: ["flashback-gold","flashback","gold"],
-      topmundogold: ["top-mundo-gold","mundo-gold","top-mundo"]
+      flashbackgold: ["flashback-gold","flashback gold","flashback"],
+      topmundogold: ["top - mundo gold","top-mundo-gold","top - mundo"]
     };
 
     document.querySelectorAll(".chip-premium").forEach(ch=>{
       ch.onclick = ()=>{
         const id = ch.getAttribute("data-p");
         const candidates = (synonyms[id]||[slug(ch.textContent)]);
-        // transforma em slug e tenta a melhor correspondência
         const want = candidates.map(slug);
-        const options = premiumFolders; // [{prefix,name,slug}]
+        const options = premiumFolders;
         let match = null;
-
-        for(const w of want){
-          match = bestMatch(w, options);
-          if(match) break;
-        }
-
+        for(const w of want){ match = bestMatch(w, options); if(match) break; }
         if(match){
-          enterFolder(match.prefix); // ex.: premium/summer eletro hits/
+          enterFolder(match.prefix);
         }else{
           alert("Playlist premium específica não encontrada. Abrindo a seção premium para você escolher.");
-          enterFolder("premium/");
-          // debug opcional:
-          console.log("Pastas premium disponíveis:", premiumFolders.map(x=>x.name));
+          enterFolder(PREMIUM_PREFIX);
+          console.log("Pastas premium:", premiumFolders.map(x=>x.name));
         }
       };
     });
@@ -366,8 +357,8 @@
   async function boot(){
     await ensureAuth();
     if(el("app").style.display!=="none"){
-      await loadPremiumFolders();   // mapeia premium/
-      await loadRootFolders();      // pastas raiz
+      await loadPremiumFolders();              // usa PREMIUM/
+      await loadRootFolders();                 // raiz do bucket
       show("viewHome"); hide("viewList");
       el("where").textContent = "Home";
     }
