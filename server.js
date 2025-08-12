@@ -1,10 +1,11 @@
-// server.js — Loove API (Render fix: usa /public em vez de client/dist)
+// server.js — Loove API com Login (PIN + JWT) e rotas protegidas
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 import {
   S3Client,
   ListObjectsV2Command,
@@ -29,10 +30,12 @@ const {
   WASABI_ACCESS_KEY_ID,
   WASABI_SECRET_ACCESS_KEY,
   WASABI_BUCKET,
-  PORT
+  PORT,
+  ACCESS_PIN = "2468",            // defina em Environment do Render
+  JWT_SECRET = "troque-isto"      // defina em Environment do Render
 } = process.env;
 
-// ====== S3 CLIENT (opcional para testes locais; app sobe mesmo sem Wasabi) ======
+// ====== S3 CLIENT (opcional; servidor sobe mesmo sem credenciais) ======
 let s3 = null;
 if (WASABI_ACCESS_KEY_ID && WASABI_SECRET_ACCESS_KEY && WASABI_ENDPOINT) {
   s3 = new S3Client({
@@ -46,21 +49,61 @@ if (WASABI_ACCESS_KEY_ID && WASABI_SECRET_ACCESS_KEY && WASABI_ENDPOINT) {
   });
 }
 
-// ====== API BÁSICA ======
+const PAGE_SIZE = 50;
+const AUDIO_EXTS = [".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg"];
+const isAudio = (key = "") => AUDIO_EXTS.some(ext => key.toLowerCase().endsWith(ext));
+const cleanPrefix = (p = "") => p.replace(/^\/+/, "");
+
+// ====== AUTH helpers ======
+function signToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+
+function auth(req, res, next) {
+  try {
+    const h = req.headers.authorization || "";
+    const [type, token] = h.split(" ");
+    if (type !== "Bearer" || !token) {
+      return res.status(401).json({ error: "Token ausente" });
+    }
+    const data = jwt.verify(token, JWT_SECRET);
+    req.user = data;
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: "Token inválido" });
+  }
+}
+
+// ====== ROTAS PÚBLICAS ======
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "loove-api" });
 });
 
-// lista pastas (funciona quando Wasabi estiver configurado)
-app.get("/api/folders", async (req, res) => {
+// Login via PIN (env ACCESS_PIN). Retorna token JWT.
+app.post("/api/login", (req, res) => {
+  const pin = (req.body?.pin || "").toString().trim();
+  if (!pin) return res.status(400).json({ error: "Informe o PIN" });
+  if (pin !== ACCESS_PIN) return res.status(401).json({ error: "PIN inválido" });
+
+  const token = signToken({ role: "user" });
+  res.json({ token, expiresInSeconds: 7 * 24 * 3600 });
+});
+
+// Verificar token
+app.get("/api/me", auth, (req, res) => {
+  res.json({ ok: true, user: req.user });
+});
+
+// ====== ROTAS PROTEGIDAS (precisam de Authorization: Bearer <token>) ======
+app.get("/api/folders", auth, async (req, res) => {
   try {
     if (!s3 || !WASABI_BUCKET) return res.json({ folders: [] });
-    const prefix = (req.query.prefix || "").toString().replace(/^\/+/, "");
+    const prefix = cleanPrefix(req.query.prefix || "");
     const data = await s3.send(new ListObjectsV2Command({
       Bucket: WASABI_BUCKET,
       Prefix: prefix,
       Delimiter: "/",
-      MaxKeys: 50
+      MaxKeys: PAGE_SIZE
     }));
     const folders = (data.CommonPrefixes || []).map(p => ({
       prefix: p.Prefix,
@@ -73,21 +116,18 @@ app.get("/api/folders", async (req, res) => {
   }
 });
 
-// lista músicas (com paginação)
-app.get("/api/list", async (req, res) => {
+app.get("/api/list", auth, async (req, res) => {
   try {
     if (!s3 || !WASABI_BUCKET) return res.json({ items: [], nextToken: null });
-    const prefix = (req.query.prefix || "").toString().replace(/^\/+/, "");
+    const prefix = cleanPrefix(req.query.prefix || "");
     const token = req.query.token || undefined;
-    const cmd = new ListObjectsV2Command({
+
+    const data = await s3.send(new ListObjectsV2Command({
       Bucket: WASABI_BUCKET,
       Prefix: prefix,
       ContinuationToken: token,
-      MaxKeys: 50
-    });
-    const data = await s3.send(cmd);
-    const audioExts = [".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg"];
-    const isAudio = k => audioExts.some(ext => k.toLowerCase().endsWith(ext));
+      MaxKeys: PAGE_SIZE
+    }));
 
     const items = (data.Contents || [])
       .filter(o => isAudio(o.Key))
@@ -108,10 +148,11 @@ app.get("/api/list", async (req, res) => {
   }
 });
 
-// assina URL de stream
-app.get("/api/stream", async (req, res) => {
+app.get("/api/stream", auth, async (req, res) => {
   try {
-    if (!s3 || !WASABI_BUCKET) return res.status(400).json({ error: "Wasabi não configurado" });
+    if (!s3 || !WASABI_BUCKET)
+      return res.status(400).json({ error: "Wasabi não configurado" });
+
     const key = req.query.key;
     if (!key) return res.status(400).json({ error: "Parâmetro key obrigatório" });
 
@@ -124,6 +165,57 @@ app.get("/api/stream", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Erro ao gerar URL de stream" });
+  }
+});
+
+// Busca simples (scan limitado)
+app.get("/api/search", auth, async (req, res) => {
+  try {
+    if (!s3 || !WASABI_BUCKET) return res.json({ items: [], scanned: 0 });
+    const q = (req.query.q || "").toString().trim().toLowerCase();
+    const prefix = cleanPrefix(req.query.prefix || "");
+    if (q.length < 3) return res.status(400).json({ error: "Digite pelo menos 3 letras" });
+
+    const maxScan = 2000;
+    let scanned = 0;
+    let token = undefined;
+    const results = [];
+
+    while (scanned < maxScan && results.length < 100) {
+      const data = await s3.send(new ListObjectsV2Command({
+        Bucket: WASABI_BUCKET,
+        Prefix: prefix,
+        ContinuationToken: token,
+        MaxKeys: PAGE_SIZE
+      }));
+
+      const contents = data.Contents || [];
+      scanned += contents.length;
+
+      for (const o of contents) {
+        if (!isAudio(o.Key)) continue;
+        const name = o.Key.split("/").pop();
+        if (name && name.toLowerCase().includes(q)) {
+          results.push({
+            key: o.Key,
+            name,
+            size: o.Size,
+            lastModified: o.LastModified
+          });
+          if (results.length >= 100) break;
+        }
+      }
+
+      if (data.IsTruncated && results.length < 100 && scanned < maxScan) {
+        token = data.NextContinuationToken;
+      } else {
+        break;
+      }
+    }
+    res.json({ items: results, scanned });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Erro na busca" });
   }
 });
 
