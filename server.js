@@ -1,96 +1,80 @@
 // server.js
 import express from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-// Rotas da API
 import authRoutes from './routes/auth.js';
-import contentRoutes from './routes/content.js';
-import userRoutes from './routes/user.js';
-import adminRoutes from './routes/admin.js';
-import webhookRoutes from './routes/webhooks.js';
-import pushRoutes from './routes/push.js';
+// (se tiver outros: contentRoutes, userRoutes, etc.)
 
-// Suporte a __dirname em ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const app = express();
 
-/* ========= Fix Render/Cloudflare =========
-   Necessário para o express-rate-limit ler IP correto
-   e evitar ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
-*/
-app.set('trust proxy', 1);
-
-/* ========= Middlewares básicos ========= */
+/* Segurança básica */
 app.use(helmet());
 app.use(compression());
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser(process.env.COOKIE_SECRET || 'cookie_secret'));
 
-/* ========= CORS =========
-   Defina CORS_ORIGIN="https://loove-music.onrender.com"
-   (ou lista separada por vírgula) nas variáveis de ambiente
-*/
-const origins = (process.env.CORS_ORIGIN || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
+/* MUITO IMPORTANTE para proxy (Render) */
+app.set('trust proxy', 1);
 
+/* CORS (ajuste se quiser travar ao seu domínio) */
+const origins = (process.env.CORS_ORIGIN || '').split(',').filter(Boolean);
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || origins.length === 0 || origins.includes(origin)) {
-        return cb(null, true);
-      }
-      return cb(null, false);
+      if (!origin || origins.length === 0 || origins.includes(origin)) return cb(null, true);
+      return cb(null, true); // relax para PWA local
     },
     credentials: true,
   })
 );
 
-/* ========= Rate limit apenas em rotas sensíveis ========= */
+/* Rate limit só para /auth */
 const authLimiter = rateLimit({
   windowMs: 60_000,
   max: 30,
 });
+app.use('/auth', authLimiter);
 
-/* ========= Rotas da API ========= */
-app.use('/auth', authLimiter, authRoutes);
-app.use('/content', contentRoutes);
-app.use('/user', userRoutes);
-app.use('/admin', adminRoutes);
-app.use('/webhooks', webhookRoutes);
-app.use('/push', pushRoutes);
+/* Rotas API */
+app.use('/auth', authRoutes);
+// app.use('/content', contentRoutes) ...
+// app.use('/user', userRoutes) ...
+// app.use('/admin', adminRoutes) ...
+// app.use('/webhooks', webhookRoutes) ...
+// app.use('/push', pushRoutes) ...
 
-/* ========= Healthcheck ========= */
-app.get('/health', (req, res) => {
+/* Healthcheck */
+app.get('/health', (_req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
 });
 
-/* ========= Frontend estático (Vite build) ========= */
+/* Static do frontend (build Vite) */
 const clientDist = path.join(__dirname, 'client', 'dist');
 app.use(express.static(clientDist));
 
-/* Service Worker e Manifest (opcional, se existirem fora do dist) */
-app.get('/service-worker.js', (req, res) => {
+/* Service worker e manifest (se existirem) */
+app.get('/service-worker.js', (_req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'service-worker.js'));
 });
-app.get('/manifest.webmanifest', (req, res) => {
+app.get('/manifest.webmanifest', (_req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'manifest.webmanifest'));
 });
 
-/* ========= SPA fallback ========= */
-app.get('*', (req, res) => {
+/* SPA fallback */
+app.get('*', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-/* ========= Boot ========= */
+/* Start */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Loove Music on :${PORT}`));
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`Loove Music on :${PORT}`);
+});
