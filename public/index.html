@@ -48,7 +48,7 @@
     .hidden{display:none}
     .topbar{display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px}
     .iconbtn{
-      border:1px solid rgba(255,255,255,.12); background:#0f1726; color:#0f1726; /* escondido no placeholder */
+      border:1px solid rgba(255,255,255,.12); background:#0f1726; color:#0f1726;
       padding:10px 12px; border-radius:12px; cursor:pointer;
     }
     .pill{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); color:var(--muted); font-size:12px}
@@ -68,17 +68,19 @@
     <section id="viewLogin" class="login card">
       <h2 style="margin:0 0 6px 0;">Entrar</h2>
       <p class="muted" style="margin:0 0 14px 0;">Digite seu PIN para acessar o app.</p>
-      <div class="grid">
+
+      <!-- usamos <form> para captar clique e Enter -->
+      <form id="formLogin" class="grid" autocomplete="off">
         <div>
           <label for="pin">PIN</label>
           <div class="row">
-            <input id="pin" type="password" inputmode="numeric" minlength="3" maxlength="8" placeholder="Ex.: 2468" />
-            <button id="togglePin" class="iconbtn" title="Mostrar/ocultar">👁️</button>
+            <input id="pin" name="pin" type="password" inputmode="numeric" minlength="3" maxlength="8" placeholder="Ex.: 2468" required />
+            <button id="togglePin" type="button" class="iconbtn" title="Mostrar/ocultar">👁️</button>
           </div>
         </div>
-        <button id="btnLogin" class="btn btn-primary">Entrar</button>
+        <button id="btnLogin" type="submit" class="btn btn-primary">Entrar</button>
         <div id="msg" class="muted"></div>
-      </div>
+      </form>
     </section>
 
     <!-- APP -->
@@ -107,8 +109,12 @@
     const msg = el("msg");
     const authInfo = el("authInfo");
     const result = el("result");
+    const formLogin = el("formLogin");
+    const btnLogin = el("btnLogin");
+    const inputPin = el("pin");
     const TOKEN_KEY = "loove_token";
 
+    // util de fetch autenticado
     async function api(path, options = {}) {
       const token = localStorage.getItem(TOKEN_KEY);
       const headers = Object.assign(
@@ -117,28 +123,101 @@
         token ? { Authorization: "Bearer " + token } : {}
       );
       const res = await fetch(path, Object.assign({}, options, { headers }));
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw data || { error: "Erro HTTP " + res.status };
+      let data = {};
+      try { data = await res.json(); } catch {}
+      if (!res.ok) {
+        throw data || { error: "Erro HTTP " + res.status };
+      }
       return data;
     }
 
-    function showLogin(){ viewLogin.classList.remove("hidden"); viewApp.classList.add("hidden"); authInfo.classList.add("hidden"); msg.textContent=""; el("pin").value=""; el("pin").focus(); }
-    function showApp(){ viewLogin.classList.add("hidden"); viewApp.classList.remove("hidden"); authInfo.classList.remove("hidden"); authInfo.textContent="Logado • expira em 7 dias"; el("status").textContent="logado"; }
+    function showLogin(){
+      viewLogin.classList.remove("hidden");
+      viewApp.classList.add("hidden");
+      authInfo.classList.add("hidden");
+      msg.textContent = "";
+      inputPin.value = "";
+      inputPin.focus();
+    }
+    function showApp(){
+      viewLogin.classList.add("hidden");
+      viewApp.classList.remove("hidden");
+      authInfo.classList.remove("hidden");
+      authInfo.textContent = "Logado • expira em 7 dias";
+      el("status").textContent = "logado";
+    }
 
-    (async function init(){ try{ await api("/api/me"); showApp(); }catch{ showLogin(); } })();
+    // inicia verificando sessão
+    (async function init(){
+      try { await api("/api/me"); showApp(); }
+      catch { showLogin(); }
+    })();
 
-    el("btnLogin").addEventListener("click", async () => {
-      const pin = el("pin").value.trim();
-      if (pin.length < 3){ msg.className="error"; msg.textContent="Digite pelo menos 3 dígitos."; return; }
-      msg.className="muted"; msg.textContent="Entrando..."; el("btnLogin").disabled = true;
-      try{
-        const data = await fetch("/api/login", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ pin }) }).then(r=>r.json());
-        if (!data.token) throw data;
-        localStorage.setItem("loove_token", data.token);
-        msg.className="success"; msg.textContent="Login realizado!"; showApp();
-      }catch(e){ msg.className="error"; msg.textContent = e?.error || "Falha no login"; }
-      finally{ el("btnLogin").disabled = false; }
+    // login (clique e Enter)
+    async function doLogin(e){
+      e?.preventDefault();
+      const pin = inputPin.value.trim();
+      if (pin.length < 3){
+        msg.className="error";
+        msg.textContent="Digite pelo menos 3 dígitos.";
+        return;
+      }
+      msg.className="muted";
+      msg.textContent="Entrando...";
+      btnLogin.disabled = true;
+      console.log("[login] tentando...");
+
+      try {
+        const res = await fetch("/api/login", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ pin })
+        });
+        const data = await res.json().catch(()=> ({}));
+        console.log("[login] resposta:", data);
+        if (!res.ok || !data.token) throw data;
+        localStorage.setItem(TOKEN_KEY, data.token);
+        msg.className="success";
+        msg.textContent="Login realizado!";
+        showApp();
+      } catch (e) {
+        console.error("[login] erro:", e);
+        msg.className="error";
+        msg.textContent = e?.error || "Falha no login";
+      } finally {
+        btnLogin.disabled = false;
+      }
+    }
+    formLogin.addEventListener("submit", doLogin);
+    btnLogin.addEventListener("click", doLogin);
+
+    // mostrar/ocultar PIN
+    el("togglePin").addEventListener("click", () => {
+      inputPin.type = inputPin.type === "password" ? "text" : "password";
+      inputPin.focus();
     });
 
-    el("togglePin").addEventListener("c
+    // sair
+    el("btnLogout").addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      result.innerHTML = "";
+      showLogin();
+    });
 
+    // testar sessão
+    el("btnCheck").addEventListener("click", async () => {
+      result.innerHTML = "";
+      try{
+        const me = await api("/api/me");
+        const div = document.createElement("div"); div.className="item";
+        div.innerHTML = `<div>Usuário logado ✅</div><div class="spacer"></div><code class="muted">${JSON.stringify(me.user)}</code>`;
+        result.appendChild(div);
+      }catch(e){
+        const div = document.createElement("div"); div.className="item";
+        div.innerHTML = `<div>Token inválido ❌</div><div class="spacer"></div><code class="error">${e?.error || "Erro"}</code>`;
+        result.appendChild(div); el("status").textContent="deslogado";
+      }
+    });
+  </script>
+</body>
+</html>
