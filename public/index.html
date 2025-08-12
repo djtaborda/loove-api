@@ -9,9 +9,7 @@
     --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
     --neon:#31e1ff; --accent:#ff2fb3;
     --amber:#ff9f1a; --amber-2:#ffb02e; --amber-3:#ff7a00;
-    --ring:0 0 0 2px rgba(49,225,255,.35), 0 0 10px rgba(49,225,255,.35);
     --chip-bg:#0d1320;
-    --player-bg:#0d1218;
   }
   *{box-sizing:border-box}
   body{
@@ -20,71 +18,39 @@
       radial-gradient(800px 500px at 110% 10%, rgba(255,47,179,.07), transparent 60%),
       var(--bg); color:var(--text);
     font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    min-height:100dvh; padding-bottom:160px; /* espaço para o player */
+    min-height:100dvh; padding-bottom:160px;
   }
   .wrap{width:100%; max-width:1060px; margin:0 auto; padding:16px}
 
   /* ======= HEADER ======= */
   header{position:relative; padding-top:12px; margin-bottom:12px}
-  .userbox{
-    position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px;
-    cursor:pointer; user-select:none;
-  }
+  .userbox{position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
   .userbox .name{font-weight:800; color:#e6ecf2; text-shadow:0 1px 0 #0008}
-  .avatar{
-    width:42px; height:42px; border-radius:50%;
-    display:grid; place-items:center; color:#0b0f14; font-weight:900;
-    background:linear-gradient(180deg,#fff,#d9d9d9);
-    border:2px solid rgba(255,255,255,.25); box-shadow:0 2px 10px #0006;
-  }
-  .menu{
-    position:absolute; top:56px; right:10px; width:260px;
-    background:linear-gradient(180deg,#0f1624,#0b101a);
-    border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:8px;
-    box-shadow:0 20px 60px rgba(0,0,0,.5); display:none; z-index:50;
-  }
+  .avatar{width:42px; height:42px; border-radius:50%; display:grid; place-items:center; color:#0b0f14; font-weight:900; background:linear-gradient(180deg,#fff,#d9d9d9); border:2px solid rgba(255,255,255,.25); box-shadow:0 2px 10px #0006}
+  .menu{position:absolute; top:56px; right:10px; width:260px; background:linear-gradient(180deg,#0f1624,#0b101a); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:8px; box-shadow:0 20px 60px rgba(0,0,0,.5); display:none; z-index:50}
   .menu.open{display:block}
   .menu h4{margin:6px 8px 8px; font-size:13px; color:#9aa4b2; font-weight:700}
-  .menu .mi{
-    width:100%; text-align:left; padding:12px 12px; border-radius:12px;
-    background:transparent; border:1px solid transparent; color:#e6ecf2; font-weight:700;
-    display:flex; align-items:center; gap:10px; cursor:pointer;
-  }
+  .menu .mi{width:100%; text-align:left; padding:12px 12px; border-radius:12px; background:transparent; border:1px solid transparent; color:#e6ecf2; font-weight:700; display:flex; align-items:center; gap:10px; cursor:pointer}
   .menu .mi:hover{background:#121b2b; border-color:rgba(255,255,255,.06)}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:6px 4px}
 
   /* logo central */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  .logo{
-    width:min(680px, 88%); height:auto; display:block; filter:drop-shadow(0 6px 24px rgba(0,0,0,.45));
-  }
-  .tagline{
-    margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px;
-    color:#fff; font-size:clamp(18px, 4.5vw, 28px);
-  }
+  .logo{width:min(680px, 88%); height:auto; display:block; filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
+  .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
-  /* busca (somente input) */
+  /* busca (input) */
   .search{display:flex; gap:10px; align-items:center; margin:16px auto 8px; max-width:820px}
-  .search input{
-    flex:1; padding:16px 16px; border-radius:18px;
-    border:1px solid rgba(255,255,255,.1); background:#0d1320; color:var(--text); font-size:16px;
-  }
-  .search input:focus{outline:none; box-shadow:var(--ring); border-color:transparent}
+  .search input{flex:1; padding:16px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.1); background:#0d1320; color:var(--text); font-size:16px}
+  .search input:focus{outline:none; box-shadow:0 0 0 2px rgba(49,225,255,.35)}
 
   /* chips premium */
   .chips{display:flex; gap:10px; flex-wrap:wrap; margin:10px auto 14px; justify-content:center}
-  .chip-premium{
-    background:var(--chip-bg); color:var(--text);
-    border:2px solid var(--amber-3);
-    padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px;
-    box-shadow: 0 4px 16px rgba(255,140,0,.15);
-  }
+  .chip-premium{background:#0d1320; color:var(--text); border:2px solid var(--amber-3); padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px; box-shadow: 0 4px 16px rgba(255,140,0,.15)}
   .chip-premium:hover{ box-shadow: 0 0 0 2px rgba(255,140,0,.35), 0 8px 20px rgba(255,140,0,.25); transform:translateY(-1px) }
 
-  /* util bar */
   .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-  .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b;
-    color:var(--text); padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:700}
+  .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:var(--text); padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:700}
   .btn:hover{transform:translateY(-1px)}
   .btn-primary{border:none; background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14}
   .pill{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); color:#9aa4b2; font-size:12px}
@@ -95,14 +61,7 @@
   @media(min-width:1024px){ .grid{grid-template-columns: repeat(4, 1fr);} }
   @media(min-width:740px) and (max-width:1023px){ .grid{grid-template-columns: repeat(3, 1fr);} }
   @media(max-width:739px){ .grid{grid-template-columns: repeat(2, 1fr);} }
-  .folderBtn{
-    display:flex; align-items:center; justify-content:center; text-align:center;
-    min-height:92px; padding:10px; border-radius:18px; cursor:pointer;
-    background:linear-gradient(180deg, var(--amber-2), var(--amber-3));
-    color:#0b0f14; font-weight:900; font-size:20px; text-transform:uppercase;
-    border:2px solid #ffcc6b; box-shadow: 0 6px 20px rgba(255,140,0,.25);
-    position:relative;
-  }
+  .folderBtn{display:flex; align-items:center; justify-content:center; text-align:center; min-height:92px; padding:10px; border-radius:18px; cursor:pointer; background:linear-gradient(180deg, var(--amber-2), var(--amber-3)); color:#0b0f14; font-weight:900; font-size:20px; text-transform:uppercase; border:2px solid #ffcc6b; box-shadow: 0 6px 20px rgba(255,140,0,.25); position:relative}
   .folderBtn::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.9; }
 
   .muted{color:#9aa4b2}
@@ -114,20 +73,12 @@
   .title{font-weight:800}
 
   /* =================== PLAYER NOVO =================== */
-  footer.player{
-    position:fixed; left:0; right:0; bottom:0; z-index:20;
-    background:transparent;
-  }
-  .player-shell{
-    max-width:980px; margin:0 auto 16px; padding:14px 16px;
-    background:#0c1117; border:1px solid rgba(255,255,255,.08);
-    border-radius:24px; box-shadow:0 24px 60px rgba(0,0,0,.55);
-  }
+  footer.player{position:fixed; left:0; right:0; bottom:0; z-index:20; background:transparent}
+  .player-shell{max-width:980px; margin:0 auto 16px; padding:14px 16px; background:#0c1117; border:1px solid rgba(255,255,255,.08); border-radius:24px; box-shadow:0 24px 60px rgba(0,0,0,.55)}
   .p-top{display:flex; align-items:center; gap:10px; margin-bottom:10px}
   .track-title{font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .track-right{margin-left:auto; display:flex; align-items:center; gap:8px}
-  .kebab{width:34px; height:34px; border-radius:10px; background:#0f1720; border:1px solid rgba(255,255,255,.12); color:#e6ecf2; display:grid;place-items:center; cursor:pointer}
-  .kebab:hover{background:#141e2e}
+  .kebab{width:34px; height:34px; border-radius:10px; background:transparent; border:none; color:#e6ecf2; display:grid;place-items:center; cursor:pointer}
   .track-sub{font-size:12px; color:#9aa4b2; margin-top:-2px}
 
   .progress{width:100%; margin-bottom:10px}
@@ -136,24 +87,31 @@
   .seek::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid #bbb}
 
   .p-controls{display:flex; align-items:center; justify-content:space-between}
-  .p-btn{width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
-         background:#0f1720; border:1px solid rgba(255,255,255,.12); color:#fff; cursor:pointer}
-  .p-btn:hover{background:#141e2e}
-  .p-btn.active{box-shadow:0 0 0 2px rgba(49,225,255,.35)}
-  .p-play{
-    width:56px; height:56px; border-radius:999px; background:linear-gradient(180deg,#ff9f1a,#ff6a00);
-    color:#0b0f14; border:none; font-size:18px; font-weight:900; box-shadow:0 8px 30px rgba(255,140,0,.35)
+  /* botões “flat” brancos (sem fundo) */
+  .p-btn{
+    width:44px; height:44px; border:none; background:transparent; color:#fff;
+    display:grid; place-items:center; cursor:pointer; padding:0;
   }
+  .p-btn svg{width:28px; height:28px; stroke:#ffffff; opacity:.9}
+  .p-btn:hover svg{opacity:1; filter:drop-shadow(0 0 4px rgba(255,255,255,.25))}
+  .p-btn.active svg{stroke:#31e1ff}
+
+  /* play/pause laranja */
+  .p-play{
+    width:62px; height:62px; border-radius:999px;
+    background:linear-gradient(180deg,#ff9f1a,#ff6a00);
+    color:#0b0f14; border:none; display:grid; place-items:center;
+    box-shadow:0 8px 30px rgba(255,140,0,.35)
+  }
+  .p-play svg{width:28px; height:28px; stroke:#ffffff}
+
   .vol-pop{position:absolute; bottom:64px; right:16px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none}
   .vol-pop.open{display:block}
   .vol-range{appearance:none; width:160px; height:6px; border-radius:999px; background:#2a3342}
   .vol-range::-webkit-slider-thumb{appearance:none; width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #bbb}
   .vol-range::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #bbb}
 
-  .menu-pop{
-    position:absolute; bottom:64px; right:54px; background:#0f1720;
-    border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none; min-width:240px
-  }
+  .menu-pop{position:absolute; bottom:64px; right:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none; min-width:240px}
   .menu-pop.open{display:block}
   .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
@@ -265,18 +223,18 @@
 
       <!-- controles: Início, Buscar, Voltar, Play/Pause, Avançar, Shuffle, Repeat, Volume -->
       <div class="p-controls">
-        <button id="pHome"   class="p-btn" title="Início">⌂</button>
-        <button id="pSearch" class="p-btn" title="Buscar">🔎</button>
-        <button id="pPrev"   class="p-btn" title="Voltar">⏮</button>
+        <button id="pHome"   class="p-btn" title="Início"></button>
+        <button id="pSearch" class="p-btn" title="Buscar"></button>
+        <button id="pPrev"   class="p-btn" title="Voltar"></button>
 
-        <button id="pPlay"   class="p-play" title="Play/Pause">▶</button>
+        <button id="pPlay"   class="p-play" title="Play/Pause"></button>
 
-        <button id="pNext"   class="p-btn" title="Avançar">⏭</button>
-        <button id="pShuffle" class="p-btn" title="Shuffle">🔀</button>
-        <button id="pRepeat"  class="p-btn" title="Repeat">🔁</button>
+        <button id="pNext"   class="p-btn" title="Avançar"></button>
+        <button id="pShuffle" class="p-btn" title="Shuffle"></button>
+        <button id="pRepeat"  class="p-btn" title="Repeat"></button>
 
         <div style="position:relative">
-          <button id="pVolume"  class="p-btn" title="Volume">🔊</button>
+          <button id="pVolume"  class="p-btn" title="Volume"></button>
           <div id="volPop" class="vol-pop">
             <input id="volRange" class="vol-range" type="range" min="0" max="1" step="0.01" value="1" />
           </div>
@@ -298,12 +256,35 @@
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
-  const PREMIUM_PREFIX = "PREMIUM/"; // maiúsculas
+  const PREMIUM_PREFIX = "PREMIUM/";
   const el = id => document.getElementById(id);
 
+  /* ===== helper para SVGs brancos flat ===== */
+  function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
+  function icoSearch(){return `<svg viewBox='0 0 24 24' fill='none'><circle cx='11' cy='11' r='7' stroke-width='2.2'/><path d='M20 20l-3.5-3.5' stroke-width='2.2' stroke-linecap='round'/></svg>`}
+  function icoPrev(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M11 6l-7 6 7 6V6zM20 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
+  function icoNext(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M13 6l7 6-7 6V6zM4 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
+  function icoPlay(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5l11 7-11 7V5z' stroke-width='2.2' stroke-linejoin='round' stroke='#ffffff'/></svg>`}
+  function icoPause(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5v14M16 5v14' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>`}
+  function icoShuffle(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M16 3h5v5M3 17h6c3 0 6-4 6-4' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 21v-5h-5M3 7h6c2 0 3 2 4 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>`}
+  function icoRepeat(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M17 1l3 3-3 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 11V8a3 3 0 0 1 3-3h13' stroke-width='2.2' stroke-linecap='round'/><path d='M7 23l-3-3 3-3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 13v3a3 3 0 0 1-3 3H4' stroke-width='2.2' stroke-linecap='round'/></svg>`}
+  function icoVolume(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M4 10v4h4l6 5V5l-6 5H4z' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/><path d='M18 9a3 3 0 0 1 0 6M20 7a6 6 0 0 1 0 10' stroke-width='2.2' stroke-linecap='round'/></svg>`}
+
+  function setFlatIcons(){
+    el("pHome").innerHTML = icoHome();
+    el("pSearch").innerHTML = icoSearch();
+    el("pPrev").innerHTML = icoPrev();
+    el("pNext").innerHTML = icoNext();
+    el("pShuffle").innerHTML = icoShuffle();
+    el("pRepeat").innerHTML = icoRepeat();
+    el("pVolume").innerHTML = icoVolume();
+    // play/pause começa com PLAY
+    el("pPlay").innerHTML = icoPlay();
+  }
+
+  /* ===== infra básica (igual antes) ===== */
   function show(id){ el(id).style.display = ""; }
   function hide(id){ el(id).style.display = "none"; }
-
   async function api(path, opts = {}) {
     const headers = Object.assign(
       { "Content-Type":"application/json" },
@@ -316,22 +297,16 @@
     return data;
   }
 
-  /* ========== STATE ========== */
-  let currentPrefix = "";
-  let nextToken = null;
-  let items = [];
+  let currentPrefix = "", nextToken = null, items = [];
   let premiumFolders = [];
 
-  /* ========== LOGIN ========== */
   async function ensureAuth(){
     try {
       const me = await api("/api/me");
       const name = me?.user?.name || me?.user?.role || "Usuário";
       el("userName").textContent = name;
       show("app"); hide("viewLogin");
-    } catch {
-      hide("app"); show("viewLogin");
-    }
+    } catch { hide("app"); show("viewLogin"); }
   }
   el("formLogin").addEventListener("submit", async ()=>{
     const pin = el("pin").value.trim();
@@ -346,7 +321,6 @@
     }catch(e){ el("msg").textContent = e?.error || "Falha no login"; }
   });
 
-  /* ========== HOME: PASTAS ========== */
   async function loadRootFolders(){
     const g = el("foldersGrid"); g.innerHTML = "";
     const d = await api("/api/folders?prefix=");
@@ -360,11 +334,7 @@
       g.appendChild(b);
     });
   }
-
-  function slug(s){
-    return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-  }
+  function slug(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,""); }
   function bestMatch(targetSlug, options){
     let hit = options.find(o => o.slug === targetSlug);
     if(hit) return hit;
@@ -378,14 +348,12 @@
     });
     return best;
   }
-
   async function loadPremiumFolders(){
     const d = await api("/api/folders?prefix="+encodeURIComponent(PREMIUM_PREFIX));
     premiumFolders = (d.folders || []).map(f=>{
       const name = (f.name||f.prefix).replace(new RegExp("^"+PREMIUM_PREFIX.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')), "").replace(/\/$/,"");
       return { prefix:f.prefix, name, slug: slug(name) };
     });
-
     const synonyms = {
       top1000: ["top-1000","top-1-000","top1000","top1k","top - brasil","top - mundo"],
       summer: ["summer-eletro-hits","summer","eletro-hits","summer eletro hits"],
@@ -395,7 +363,6 @@
       flashbackgold: ["flashback-gold","flashback gold","flashback"],
       topmundogold: ["top - mundo gold","top-mundo-gold","top - mundo"]
     };
-
     document.querySelectorAll(".chip-premium").forEach(ch=>{
       ch.onclick = ()=>{
         const id = ch.getAttribute("data-p");
@@ -404,9 +371,8 @@
         const options = premiumFolders;
         let match = null;
         for(const w of want){ match = bestMatch(w, options); if(match) break; }
-        if(match){
-          enterFolder(match.prefix);
-        }else{
+        if(match){ enterFolder(match.prefix); }
+        else{
           alert("Playlist premium específica não encontrada. Abrindo a seção premium para você escolher.");
           enterFolder(PREMIUM_PREFIX);
           console.log("Pastas premium:", premiumFolders.map(x=>x.name));
@@ -415,21 +381,14 @@
     });
   }
 
-  /* ========== LISTA / NAVEGAÇÃO ========== */
-  function humanSize(bytes){
-    if(!bytes && bytes!==0) return "";
-    const u=["B","KB","MB","GB","TB"]; let i=0; let b=bytes;
-    while(b>=1024 && i<u.length-1){ b/=1024; i++; }
-    return b.toFixed(1)+" "+u[i];
-  }
+  function humanSize(bytes){ if(!bytes && bytes!==0) return ""; const u=["B","KB","MB","GB","TB"]; let i=0; let b=bytes; while(b>=1024 && i<u.length-1){ b/=1024; i++; } return b.toFixed(1)+" "+u[i]; }
   function favs(){ try{ return JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]"); }catch{ return []; } }
   function setFavs(a){ localStorage.setItem(FAVORITES_KEY, JSON.stringify(a)); }
   function isFav(k){ return favs().includes(k); }
   function toggleFav(k){ const f=favs(); const i=f.indexOf(k); if(i>=0)f.splice(i,1); else f.push(k); setFavs(f); renderList(); }
 
   async function enterFolder(prefix){
-    currentPrefix = prefix || "";
-    nextToken = null; items = [];
+    currentPrefix = prefix || ""; nextToken = null; items = [];
     el("where").textContent = currentPrefix ? "Pasta: "+currentPrefix : "Home";
     hide("viewHome"); hide("viewFavs"); show("viewList");
     el("list").innerHTML = "";
@@ -457,7 +416,6 @@
     });
   }
 
-  /* ========== BUSCA ========== */
   async function doSearch(){
     const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
@@ -467,150 +425,69 @@
   }
   el("q").addEventListener("keydown", e=>{ if(e.key==="Enter") doSearch(); });
 
-  /* ========== FORMATA TÍTULO ========== */
-  function formatTitle(filename = ""){
-    // remove extensão
-    let name = filename.replace(/\.[a-z0-9]{1,5}$/i,"");
-    // normaliza traço (–, -, —)
-    name = name.replace(/\s*[-–—]\s*/," – ");
-    return name;
-  }
-  function parentFolderFromKey(key=""){
-    const path = key.split("/"); path.pop();
-    return path.join("/") || "/";
-  }
+  function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
+  function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
 
-  /* ========== PLAYER ========== */
-  const audio = el("audio");
-  const seek = el("seek");
-  const nowTitle = el("nowTitle");
-  const nowFolder = el("nowFolder");
-  const nowTime = el("nowTime");
-  const pPlay = el("pPlay");
-  const pPrev = el("pPrev");
-  const pNext = el("pNext");
-  const pHome = el("pHome");
-  const pSearch = el("pSearch");
-  const volPop = el("volPop");
-  const volRange = el("volRange");
-  const pVolume = el("pVolume");
-  const pShuffle = el("pShuffle");
-  const pRepeat = el("pRepeat");
-  const btnKebab = el("btnKebab");
-  const menuPop = el("menuPop");
+  const audio = el("audio"); const seek = el("seek"); const nowTitle = el("nowTitle"); const nowFolder = el("nowFolder"); const nowTime = el("nowTime");
+  const pPlay = el("pPlay"); const pPrev = el("pPrev"); const pNext = el("pNext"); const pHome = el("pHome"); const pSearch = el("pSearch");
+  const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
+  const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
-  // estado do player
-  let currentKey = null;
-  let currentName = null;
-  let shuffleOn = false;
-  let repeatOn = false;
+  let currentKey = null, currentName = null, shuffleOn=false, repeatOn=false;
 
-  function setNow(name, key){
-    nowTitle.textContent = formatTitle(name || "");
-    nowFolder.textContent = parentFolderFromKey(key || "") || "—";
-  }
-  function fmt(t){
-    if(!isFinite(t) || t<0) return "0:00";
-    const m = Math.floor(t/60); const s = Math.floor(t%60);
-    return m+":"+(s<10?"0":"")+s;
-  }
-  function updateTimeUI(){
-    const cur = audio.currentTime||0;
-    const dur = audio.duration||0;
-    nowTime.textContent = `${fmt(cur)} / ${fmt(dur)}`;
-    if(dur>0 && !isNaN(dur)){
-      seek.value = Math.round((cur/dur)*1000);
-    }else{
-      seek.value = 0;
-    }
-  }
+  function setNow(name,key){ nowTitle.textContent = formatTitle(name||""); nowFolder.textContent = parentFolderFromKey(key||"") || "—"; }
+  function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
+  function updateTimeUI(){ const cur=audio.currentTime||0; const dur=audio.duration||0; nowTime.textContent = `${fmt(cur)} / ${fmt(dur)}`; seek.value = (dur>0&&!isNaN(dur)) ? Math.round((cur/dur)*1000) : 0; }
   audio.addEventListener("timeupdate", updateTimeUI);
   audio.addEventListener("loadedmetadata", updateTimeUI);
   audio.addEventListener("ended", ()=>{
-    pPlay.textContent = "▶";
-    if(repeatOn){ audio.currentTime=0; audio.play(); pPlay.textContent="⏸"; return; }
-    // avançar simples (ou aleatório)
+    setPlayIcon(false);
+    if(repeatOn){ audio.currentTime=0; audio.play(); setPlayIcon(true); return; }
     if(items.length){
-      let idx = items.findIndex(it => it.key===currentKey);
-      if(idx<0) idx=0;
-      if(shuffleOn){
-        const r = Math.floor(Math.random()*items.length);
-        playKey(items[r].key, items[r].name);
-      }else if(idx < items.length-1){
-        playKey(items[idx+1].key, items[idx+1].name);
-      }
+      let idx = items.findIndex(it => it.key===currentKey); if(idx<0) idx=0;
+      if(shuffleOn){ const r = Math.floor(Math.random()*items.length); playKey(items[r].key, items[r].name); }
+      else if(idx < items.length-1){ playKey(items[idx+1].key, items[idx+1].name); }
     }
   });
+  seek.addEventListener("input", ()=>{ const dur=audio.duration||0; if(dur<=0) return; audio.currentTime = (Number(seek.value)/1000)*dur; updateTimeUI(); });
 
-  seek.addEventListener("input", ()=>{
-    const dur = audio.duration||0; if(dur<=0) return;
-    const val = Number(seek.value)/1000;
-    audio.currentTime = val*dur;
-    updateTimeUI();
-  });
-
+  function setPlayIcon(isPlaying){
+    pPlay.innerHTML = isPlaying ? icoPause() : icoPlay();
+  }
   pPlay.onclick = ()=>{
-    if(!audio.src) return; 
-    if(audio.paused){ audio.play(); pPlay.textContent="⏸"; } else { audio.pause(); pPlay.textContent="▶"; }
+    if(!audio.src) return;
+    if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); }
   };
-  pPrev.onclick = ()=>{
-    if(items.length){
-      let idx = items.findIndex(it => it.key===currentKey);
-      if(idx>0) playKey(items[idx-1].key, items[idx-1].name);
-    }
-  };
-  pNext.onclick = ()=>{
-    if(items.length){
-      let idx = items.findIndex(it => it.key===currentKey);
-      if(idx < items.length-1) playKey(items[idx+1].key, items[idx+1].name);
-    }
-  };
+  pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
+  pNext.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx<items.length-1) playKey(items[idx+1].key, items[idx+1].name); } };
   pHome.onclick = ()=> el("btnHome").click();
   pSearch.onclick = ()=> el("q").focus();
+  pShuffle.onclick = ()=>{ shuffleOn=!shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
+  pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
 
-  pShuffle.onclick = ()=>{ shuffleOn = !shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
-  pRepeat.onclick = ()=>{ repeatOn = !repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
-
-  pVolume.onclick = (e)=>{ e.stopPropagation(); volPop.classList.toggle("open"); menuPop.classList.remove("open"); };
+  pVolume.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.remove("open"); volPop.classList.toggle("open"); };
   volRange.addEventListener("input", ()=>{ audio.volume = Number(volRange.value); });
   document.addEventListener("click", (ev)=>{
     if(!volPop.contains(ev.target) && !pVolume.contains(ev.target)) volPop.classList.remove("open");
     if(!menuPop.contains(ev.target) && !btnKebab.contains(ev.target)) menuPop.classList.remove("open");
   });
-
   btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); volPop.classList.remove("open"); };
 
-  // Itens do menu ⋯
-  el("miShare").onclick = async ()=>{
-    try{
-      if(navigator.share){
-        await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href });
-      }else{
-        await navigator.clipboard.writeText(location.href);
-        alert("Link copiado!");
-      }
-    }catch{}
-  };
-  el("miFav").onclick = ()=>{
-    if(currentKey) toggleFav(currentKey);
-    alert("Favorito atualizado.");
-  };
+  el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
+  el("miFav").onclick = ()=>{ if(currentKey) toggleFav(currentKey); alert("Favorito atualizado."); };
   el("miDown").onclick = ()=> alert("Recurso Premium.");
   el("miCreatePl").onclick = ()=> alert("Recurso Premium.");
   el("miSavePl").onclick = ()=> alert("Recurso Premium.");
 
-  async function playKey(key, name){
+  async function playKey(key,name){
     const d = await api("/api/stream?key="+encodeURIComponent(key));
-    audio.src = d.url;
-    currentKey = key; currentName = name;
-    setNow(name, key);
-    audio.play(); pPlay.textContent = "⏸";
+    audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
+    audio.play(); setPlayIcon(true);
   }
 
-  /* ATALHOS EXTRA */
   el("btnBack").onclick = ()=>{
     if(!currentPrefix) return;
-    const p = currentPrefix.replace(/\/$/,"");
+    const p=currentPrefix.replace(/\/$/,"");
     const up = p.includes("/") ? p.split("/").slice(0,-1).join("/") + "/" : "";
     enterFolder(up);
   };
@@ -619,10 +496,8 @@
   el("btnPlayAll").onclick = ()=>{ if(!items.length) return alert("Nada para tocar."); playKey(items[0].key, items[0].name); };
 
   function renderFavs(){
-    const cont = el("favList");
-    cont.innerHTML = "";
-    const f = favs();
-    if(!f.length){ cont.innerHTML = `<div class="muted">Você ainda não marcou favoritos.</div>`; return; }
+    const cont = el("favList"); cont.innerHTML = "";
+    const f = favs(); if(!f.length){ cont.innerHTML = `<div class="muted">Você ainda não marcou favoritos.</div>`; return; }
     f.forEach(k=>{
       const row = document.createElement("div"); row.className="item";
       const nm = k.split("/").pop();
@@ -635,22 +510,14 @@
     });
   }
 
-  /* MENU DO USUÁRIO */
-  const userBtn = el("userBtn");
-  const userMenu = el("userMenu");
+  const userBtn = el("userBtn"), userMenu = el("userMenu");
   function closeMenu(){ userMenu.classList.remove("open"); userMenu.setAttribute("aria-hidden","true"); }
   function openMenu(){ userMenu.classList.add("open"); userMenu.setAttribute("aria-hidden","false"); }
-  userBtn.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    if(userMenu.classList.contains("open")) closeMenu(); else openMenu();
-  });
-  document.addEventListener("click", (ev)=>{
-    if(!userMenu.contains(ev.target) && !userBtn.contains(ev.target)) closeMenu();
-  });
+  userBtn.addEventListener("click", (e)=>{ e.stopPropagation(); userMenu.classList.contains("open") ? closeMenu() : openMenu(); });
+  document.addEventListener("click", (ev)=>{ if(!userMenu.contains(ev.target) && !userBtn.contains(ev.target)) closeMenu(); });
   userMenu.addEventListener("click", (e)=>{
     if(!(e.target instanceof HTMLElement)) return;
-    const act = e.target.getAttribute("data-act");
-    if(!act) return;
+    const act = e.target.getAttribute("data-act"); if(!act) return;
     closeMenu();
     switch(act){
       case "home": el("btnHome").click(); break;
@@ -667,10 +534,10 @@
     }
   });
 
-  /* BOOT */
   async function boot(){
     await ensureAuth();
     if(el("app").style.display!=="none"){
+      setFlatIcons();
       await loadPremiumFolders();
       await loadRootFolders();
       show("viewHome"); hide("viewList"); hide("viewFavs");
