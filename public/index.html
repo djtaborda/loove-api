@@ -48,7 +48,7 @@
     .hidden{display:none}
     .topbar{display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px}
     .iconbtn{
-      border:1px solid rgba(255,255,255,.12); background:#0f1726; color:var(--text);
+      border:1px solid rgba(255,255,255,.12); background:#0f1726; color:#0f1726; /* escondido no placeholder */
       padding:10px 12px; border-radius:12px; cursor:pointer;
     }
     .pill{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); color:var(--muted); font-size:12px}
@@ -123,4 +123,22 @@
     }
 
     function showLogin(){ viewLogin.classList.remove("hidden"); viewApp.classList.add("hidden"); authInfo.classList.add("hidden"); msg.textContent=""; el("pin").value=""; el("pin").focus(); }
-    function showApp(){ viewLogin.classList.add("hidden"); viewApp.classList.remove("hidden"); authInfo.classList.remove("hidden"); authIn
+    function showApp(){ viewLogin.classList.add("hidden"); viewApp.classList.remove("hidden"); authInfo.classList.remove("hidden"); authInfo.textContent="Logado • expira em 7 dias"; el("status").textContent="logado"; }
+
+    (async function init(){ try{ await api("/api/me"); showApp(); }catch{ showLogin(); } })();
+
+    el("btnLogin").addEventListener("click", async () => {
+      const pin = el("pin").value.trim();
+      if (pin.length < 3){ msg.className="error"; msg.textContent="Digite pelo menos 3 dígitos."; return; }
+      msg.className="muted"; msg.textContent="Entrando..."; el("btnLogin").disabled = true;
+      try{
+        const data = await fetch("/api/login", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ pin }) }).then(r=>r.json());
+        if (!data.token) throw data;
+        localStorage.setItem("loove_token", data.token);
+        msg.className="success"; msg.textContent="Login realizado!"; showApp();
+      }catch(e){ msg.className="error"; msg.textContent = e?.error || "Falha no login"; }
+      finally{ el("btnLogin").disabled = false; }
+    });
+
+    el("togglePin").addEventListener("c
+
