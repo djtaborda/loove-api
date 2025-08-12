@@ -26,7 +26,11 @@
   header{position:relative; padding-top:12px; margin-bottom:12px}
   .userbox{position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
   .userbox .name{font-weight:800; color:#e6ecf2; text-shadow:0 1px 0 #0008}
-  .avatar{width:42px; height:42px; border-radius:50%; display:grid; place-items:center; color:#0b0f14; font-weight:900; background:linear-gradient(180deg,#fff,#d9d9d9); border:2px solid rgba(255,255,255,.25); box-shadow:0 2px 10px #0006}
+
+  /* (3) avatar em estilo dos botões do player (flat, sem fundo) */
+  .avatar{width:44px; height:44px; display:grid; place-items:center; border-radius:50%}
+  .avatar svg{width:30px; height:30px; stroke:#ffffff; opacity:.95}
+
   .menu{position:absolute; top:56px; right:10px; width:260px; background:linear-gradient(180deg,#0f1624,#0b101a); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:8px; box-shadow:0 20px 60px rgba(0,0,0,.5); display:none; z-index:50}
   .menu.open{display:block}
   .menu h4{margin:6px 8px 8px; font-size:13px; color:#9aa4b2; font-weight:700}
@@ -37,6 +41,11 @@
   /* logo central */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
   .logo{width:min(680px, 88%); height:auto; display:block; filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
+  /* (1) logo menor no celular */
+  @media(max-width:600px){
+    .logo{ width:min(420px, 68vw); } /* só no mobile */
+  }
+
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
   /* busca (input) */
@@ -67,9 +76,9 @@
   .muted{color:#9aa4b2}
   .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px}
 
-  /* ===== LISTA DE MÚSICAS (novo layout) ===== */
+  /* ===== LISTA DE MÚSICAS ===== */
   .list{margin:0; padding:0}
-  .track{list-style:none; display:flex; align-items:center; gap:12px;
+  .track{list-style:none; position:relative; display:flex; align-items:center; gap:12px;
          background:#0f1726; border:1px solid rgba(255,255,255,.06);
          border-radius:18px; padding:14px; margin:12px 0; box-shadow:0 4px 16px rgba(0,0,0,.15)}
   .t-left{display:grid; place-items:center}
@@ -81,12 +90,20 @@
   .t-titleBox{min-width:0; display:flex; flex-direction:column}
   .t-title{font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .t-sub{font-size:12px; color:var(--muted); margin-top:2px}
-  .t-right{margin-left:auto; display:flex; align-items:center; gap:8px}
+  .t-right{margin-left:auto; display:flex; align-items:center; gap:6px}
   .t-like{width:42px; height:42px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer}
   .t-like svg{width:26px; height:26px; stroke:#ffffff; fill:none; opacity:.95}
   .t-like.active svg{stroke:var(--accent); filter:drop-shadow(0 0 4px rgba(255,47,179,.35))}
+  /* (4) botão ⋯ do item */
+  .t-kebab{width:42px; height:42px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer}
+  .t-kebab svg{width:24px; height:24px; stroke:#ffffff; opacity:.95}
 
-  /* =================== PLAYER (já existente) =================== */
+  .t-menu{position:absolute; right:6px; top:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none; min-width:240px; z-index:5}
+  .t-menu.open{display:block}
+  .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
+  .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+
+  /* =================== PLAYER =================== */
   footer.player{position:fixed; left:0; right:0; bottom:0; z-index:20; background:transparent}
   .player-shell{max-width:980px; margin:0 auto 16px; padding:14px 16px; background:#0c1117; border:1px solid rgba(255,255,255,.08); border-radius:24px; box-shadow:0 24px 60px rgba(0,0,0,.55)}
   .p-top{display:flex; align-items:center; gap:10px; margin-bottom:10px}
@@ -126,7 +143,7 @@
     <header>
       <div class="userbox" id="userBtn" title="Abrir menu">
         <div class="name" id="userName">Usuário</div>
-        <div class="avatar">👤</div>
+        <div class="avatar" id="avatarIcon"></div> <!-- (3) silhueta flat -->
         <div class="menu" id="userMenu" aria-hidden="true">
           <h4>MENU</h4>
           <button class="mi" data-act="home">🏠 Início</button>
@@ -154,7 +171,8 @@
       <div class="tagline">AQUI TODO MUNDO AMA MÚSICA</div>
 
       <div class="search">
-        <input id="q" type="search" placeholder="Qual música você quer ouvir? (aperte Enter)" />
+        <!-- (2) placeholder simplificado -->
+        <input id="q" type="search" placeholder="Qual música você quer ouvir?" />
       </div>
 
       <div class="chips" id="chipsPremium">
@@ -205,7 +223,7 @@
     <div id="msg" class="muted" style="margin-top:8px"></div>
   </section>
 
-  <!-- =================== PLAYER (mantido) =================== -->
+  <!-- =================== PLAYER =================== -->
   <footer class="player">
     <div class="player-shell">
       <div class="p-top">
@@ -262,6 +280,8 @@
   function icoRepeat(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M17 1l3 3-3 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 11V8a3 3 0 0 1 3-3h13' stroke-width='2.2' stroke-linecap='round'/><path d='M7 23l-3-3 3-3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 13v3a3 3 0 0 1-3 3H4' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoVolume(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M4 10v4h4l6 5V5l-6 5H4z' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/><path d='M18 9a3 3 0 0 1 0 6M20 7a6 6 0 0 1 0 10' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoHeart(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.7-9.5-8A5.6 5.6 0 0 1 12 6a5.6 5.6 0 0 1 9.5 7c-2.5 3.3-9.5 8-9.5 8Z" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+  function icoKebab(){return `<svg viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/><circle cx="19" cy="12" r="2" stroke-width="2"/></svg>`}
+  function icoUser(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2.2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2.2" stroke-linecap="round"/></svg>`}
 
   function setFlatIcons(){
     el("pHome").innerHTML = icoHome();
@@ -272,6 +292,9 @@
     el("pRepeat").innerHTML = icoRepeat();
     el("pVolume").innerHTML = icoVolume();
     el("pPlay").innerHTML = icoPlay(); // inicial
+    // (3) avatar – silhueta
+    const av = document.getElementById("avatarIcon");
+    if(av) av.innerHTML = icoUser();
   }
 
   /* ===== infra ===== */
@@ -373,7 +396,6 @@
     });
   }
 
-  function humanSize(bytes){ if(!bytes && bytes!==0) return ""; const u=["B","KB","MB","GB","TB"]; let i=0; let b=bytes; while(b>=1024 && i<u.length-1){ b/=1024; i++; } return b.toFixed(1)+" "+u[i]; }
   function favs(){ try{ return JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]"); }catch{ return []; } }
   function setFavs(a){ localStorage.setItem(FAVORITES_KEY, JSON.stringify(a)); }
   function isFav(k){ return favs().includes(k); }
@@ -394,18 +416,16 @@
     el("btnMore").disabled = !nextToken;
   }
 
-  /* ====== formatadores ===== */
   function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
-  /* ====== carregamento lazy de duração ===== */
-  const durationCache = new Map(); // key -> seconds
+  /* duração lazy */
+  const durationCache = new Map();
   const visObs = new IntersectionObserver((entries)=>{
     entries.forEach(en=>{
       if(!en.isIntersecting) return;
-      const row = en.target;
-      visObs.unobserve(row);
+      const row = en.target; visObs.unobserve(row);
       const key = row.getAttribute("data-key");
       const span = row.querySelector(".t-sub .dur");
       if(!key || !span) return;
@@ -419,54 +439,79 @@
     try{
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       const a = new Audio();
-      a.preload = "metadata";
-      a.src = d.url;
+      a.preload = "metadata"; a.src = d.url;
       a.addEventListener("loadedmetadata", ()=>{
         const sec = a.duration || 0;
         durationCache.set(key, sec);
         span.textContent = fmt(sec);
-        // libera
         a.src = "";
       }, { once:true });
       a.addEventListener("error", ()=>{ span.textContent="--:--"; }, { once:true });
     }catch{ span.textContent="--:--"; }
   }
 
-  /* ====== renderização da lista ===== */
+  /* ===== renderização da lista (agora com ⋯ por item) ===== */
   function renderList(){
     const UL = el("list"); UL.innerHTML = "";
     if(!items.length){ UL.innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Nenhuma música nesta pasta.</li>`; return; }
     items.forEach(m=>{
       const LI = document.createElement("li"); LI.className = "track"; LI.setAttribute("data-key", m.key);
 
-      // play redondo laranja
       const left = document.createElement("div"); left.className = "t-left";
       const btPlay = document.createElement("button"); btPlay.className = "t-play"; btPlay.innerHTML = "▶";
       btPlay.onclick = ()=> playKey(m.key, m.name);
       left.appendChild(btPlay);
 
-      // títulos
       const mid = document.createElement("div"); mid.className="t-titleBox";
       const t1 = document.createElement("div"); t1.className="t-title"; t1.textContent = formatTitle(m.name);
       const t2 = document.createElement("div"); t2.className="t-sub";
       t2.innerHTML = `<span class="dur">—:—</span> · <span class="folder">${parentFolderFromKey(m.key)}</span>`;
       mid.appendChild(t1); mid.appendChild(t2);
 
-      // lado direito (coração branco)
       const right = document.createElement("div"); right.className="t-right";
       const like = document.createElement("button"); like.className="t-like"; like.innerHTML = icoHeart();
       if(isFav(m.key)) like.classList.add("active");
       like.onclick = ()=> { toggleFav(m.key); like.classList.toggle("active"); };
 
+      // (4) botão ⋯ e menu do item
+      const keb = document.createElement("button"); keb.className="t-kebab"; keb.innerHTML = icoKebab();
+      const menu = document.createElement("div"); menu.className="t-menu";
+      menu.innerHTML = `
+        <button class="menu-item miShare">Compartilhar</button>
+        <button class="menu-item miFav">${isFav(m.key)?"Remover dos favoritos":"Favoritar"}</button>
+        <button class="menu-item">Baixar (Premium)</button>
+        <button class="menu-item">Criar Playlist (Premium)</button>
+        <button class="menu-item">Adicionar na Playlist (Premium)</button>
+      `;
+      keb.onclick = (e)=>{ e.stopPropagation(); closeAllItemMenus(); menu.classList.toggle("open"); };
+      document.addEventListener("click",(ev)=>{ if(!menu.contains(ev.target) && !keb.contains(ev.target)) menu.classList.remove("open"); });
+
+      // ações do menu
+      menu.querySelector(".miShare").onclick = async ()=>{
+        try{
+          if(navigator.share){ await navigator.share({ title: formatTitle(m.name), text:"Ouça no Loove", url: location.href }); }
+          else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); }
+        }catch{}
+        menu.classList.remove("open");
+      };
+      menu.querySelector(".miFav").onclick = ()=>{
+        toggleFav(m.key);
+        like.classList.toggle("active");
+        menu.classList.remove("open");
+      };
+
       right.appendChild(like);
+      right.appendChild(keb);
 
       LI.appendChild(left); LI.appendChild(mid); LI.appendChild(right);
+      LI.appendChild(menu);
       UL.appendChild(LI);
 
-      // observar para carregar duração quando visível
       visObs.observe(LI);
     });
   }
+
+  function closeAllItemMenus(){ document.querySelectorAll(".t-menu.open").forEach(m=>m.classList.remove("open")); }
 
   function toggleFav(k){
     const f = favs(); const i=f.indexOf(k);
