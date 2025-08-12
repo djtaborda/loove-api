@@ -1,223 +1,330 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Loove • Music App</title>
-  <style>
-    :root{
-      --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
-      --brand:#ff7a00; --neon:#31e1ff; --accent:#ff2fb3;
-      --ring:0 0 0 2px rgba(49,225,255,.35), 0 0 10px rgba(49,225,255,.35);
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;background:radial-gradient(1000px 600px at 10% -10%, rgba(49,225,255,.08), transparent 60%),
-      radial-gradient(800px 500px at 110% 10%, rgba(255,47,179,.07), transparent 60%),
-      var(--bg); color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:16px;
-    }
-    .wrap{width:100%; max-width:980px}
-    header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px}
-    h1{font-size:24px;margin:0;letter-spacing:.5px;display:flex;gap:10px;align-items:center}
-    .badge{font-size:12px;color:var(--neon)}
-    .card{
-      background:linear-gradient(180deg,#121826,#0c111b);
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:16px; padding:18px;
-      box-shadow:0 10px 40px rgba(0,0,0,.25);
-    }
-    .grid{display:grid; gap:16px}
-    .login{max-width:420px; margin:60px auto}
-    label{font-size:14px; color:var(--muted)}
-    input[type="password"], input[type="text"]{
-      width:100%; padding:14px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.08);
-      background:#0d1320; color:var(--text); outline:none; box-shadow:none; font-size:16px;
-    }
-    input:focus{box-shadow:var(--ring); border-color:transparent}
-    .row{display:flex; gap:10px; align-items:center}
-    .btn{
-      appearance:none; border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg,#182235,#0f1726);
-      color:var(--text); padding:12px 16px; border-radius:14px; cursor:pointer; transition:.2s; font-weight:600;
-    }
-    .btn:hover{transform:translateY(-1px)}
-    .btn-primary{border:none;background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14; font-weight:800}
-    .muted{color:var(--muted); font-size:13px}
-    .error{color:#ff6b6b; font-size:14px; margin-top:8px}
-    .success{color:#7CFFA1; font-size:14px; margin-top:8px}
-    .hidden{display:none}
-    .topbar{display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px}
-    .iconbtn{
-      border:1px solid rgba(255,255,255,.12); background:#0f1726; color:#0f1726;
-      padding:10px 12px; border-radius:12px; cursor:pointer;
-    }
-    .pill{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); color:var(--muted); font-size:12px}
-    .list{display:grid; gap:8px}
-    .item{display:flex; align-items:center; gap:10px; background:#0f1726; border:1px solid rgba(255,255,255,.06); padding:12px; border-radius:12px}
-    .spacer{flex:1}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loove • Music App</title>
+<style>
+  :root{
+    --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
+    --brand:#ff7a00; --neon:#31e1ff; --accent:#ff2fb3;
+    --ring:0 0 0 2px rgba(49,225,255,.35), 0 0 10px rgba(49,225,255,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:
+    radial-gradient(1000px 600px at 10% -10%, rgba(49,225,255,.08), transparent 60%),
+    radial-gradient(800px 500px at 110% 10%, rgba(255,47,179,.07), transparent 60%),
+    var(--bg); color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    min-height:100dvh; display:flex; align-items:stretch; justify-content:center;
+  }
+  .wrap{width:100%; max-width:1100px; padding:16px 16px 120px}
+  header{position:sticky; top:0; z-index:5; backdrop-filter: blur(10px); margin-bottom:16px}
+  h1{font-size:24px;margin:0;letter-spacing:.5px;display:flex;gap:10px;align-items:center}
+  .badge{font-size:12px;color:var(--neon)}
+  .top{display:flex; gap:10px; align-items:center; margin-top:10px}
+  input[type="search"]{
+    flex:1; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.08);
+    background:#0d1320; color:var(--text); outline:none;
+  }
+  input[type="search"]:focus{box-shadow:var(--ring); border-color:transparent}
+  .btn{
+    appearance:none; border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg,#182235,#0f1726);
+    color:var(--text); padding:10px 12px; border-radius:12px; cursor:pointer; transition:.2s; font-weight:600;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{border:none;background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14; font-weight:800}
+  .pill{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); color:var(--muted); font-size:12px}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0}
+  .chip{border:1px solid rgba(255,255,255,.12); padding:8px 12px; border-radius:999px; cursor:pointer; color:var(--muted); background:#0f1726}
+  .chip.active{color:#0b0f14; background:linear-gradient(180deg,#31e1ff,#1fa1ff); border:none; font-weight:700}
+  .grid{display:grid; grid-template-columns:1fr; gap:8px}
+  @media(min-width:720px){ .grid{grid-template-columns:1fr 1fr} }
+  .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px}
+  .row{display:flex; align-items:center; gap:8px}
+  .item{display:flex; align-items:center; gap:10px; background:#0f1726; border:1px solid rgba(255,255,255,.06); padding:12px; border-radius:12px}
+  .title{font-weight:700}
+  .muted{color:var(--muted); font-size:12px}
+  .spacer{flex:1}
+  .iconbtn{border:1px solid rgba(255,255,255,.12); background:#0f1726; color:var(--text); width:36px;height:36px;border-radius:12px; display:grid;place-items:center; cursor:pointer}
+  .iconbtn.play{background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14; border:none; font-weight:800}
+  .iconbtn.like.active{color:var(--accent); box-shadow:0 0 0 2px rgba(255,47,179,.35),0 0 10px rgba(255,47,179,.35)}
+  footer.player{
+    position:fixed; left:0; right:0; bottom:0; z-index:10; background:rgba(11,15,20,.92); backdrop-filter: blur(12px);
+    border-top:1px solid rgba(255,255,255,.08);
+  }
+  .wrapp{max-width:1100px;margin:0 auto;padding:12px}
+  .trackname{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55vw}
+</style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>Loove <span class="badge">music</span></h1>
-      <div id="authInfo" class="pill hidden"></div>
-    </header>
-
-    <!-- LOGIN -->
-    <section id="viewLogin" class="login card">
-      <h2 style="margin:0 0 6px 0;">Entrar</h2>
-      <p class="muted" style="margin:0 0 14px 0;">Digite seu PIN para acessar o app.</p>
-
-      <!-- usamos <form> para captar clique e Enter -->
-      <form id="formLogin" class="grid" autocomplete="off">
-        <div>
-          <label for="pin">PIN</label>
-          <div class="row">
-            <input id="pin" name="pin" type="password" inputmode="numeric" minlength="3" maxlength="8" placeholder="Ex.: 2468" required />
-            <button id="togglePin" type="button" class="iconbtn" title="Mostrar/ocultar">👁️</button>
-          </div>
-        </div>
-        <button id="btnLogin" type="submit" class="btn btn-primary">Entrar</button>
-        <div id="msg" class="muted"></div>
-      </form>
-    </section>
-
-    <!-- APP -->
-    <section id="viewApp" class="card hidden">
-      <div class="topbar">
-        <div class="row" style="gap:8px">
-          <span class="pill">Status: <b id="status">logado</b></span>
-          <button id="btnCheck" class="btn">Testar sessão</button>
-        </div>
+      <div class="top">
+        <input id="q" type="search" placeholder="Buscar músicas (mín. 3 letras)..." />
+        <button id="btnSearch" class="btn">Buscar</button>
+        <button id="btnOnlyFav" class="btn">Apenas favoritos: OFF</button>
         <button id="btnLogout" class="btn">Sair</button>
       </div>
-
-      <div class="grid">
-        <p class="muted">Você está logado. Clique em <b>Testar sessão</b> para validar o token.  
-        Na próxima etapa vamos carregar pastas e músicas do Wasabi aqui dentro.</p>
-
-        <div id="result" class="list"></div>
+      <div id="chips" class="chips"></div>
+      <div class="row" style="gap:8px; margin-bottom:10px;">
+        <span id="where" class="pill">Raiz do bucket</span>
+        <button id="btnBack" class="btn">⬅ Voltar pasta</button>
+        <div class="spacer"></div>
+        <button id="btnPlayAll" class="btn btn-primary">▶ Tocar tudo da lista</button>
+        <button id="btnMore" class="btn">Carregar mais</button>
       </div>
-    </section>
+    </header>
+
+    <!-- Lista -->
+    <section class="grid" id="list"></section>
   </div>
 
-  <script>
-    const el = (id) => document.getElementById(id);
-    const viewLogin = el("viewLogin");
-    const viewApp = el("viewApp");
-    const msg = el("msg");
-    const authInfo = el("authInfo");
-    const result = el("result");
-    const formLogin = el("formLogin");
-    const btnLogin = el("btnLogin");
-    const inputPin = el("pin");
-    const TOKEN_KEY = "loove_token";
+  <!-- Player -->
+  <footer class="player">
+    <div class="wrapp">
+      <div class="row" style="gap:8px">
+        <button id="btnPrev" class="iconbtn">⏮</button>
+        <button id="btnMainPlay" class="iconbtn play">▶</button>
+        <button id="btnNext" class="iconbtn">⏭</button>
+        <button id="btnShuffle" class="iconbtn" title="Aleatório">🔀</button>
+        <button id="btnRepeat" class="iconbtn" title="Repetir">🔁</button>
+        <div class="spacer"></div>
+        <div class="trackname" id="now">Nada tocando</div>
+      </div>
+      <audio id="audio" crossorigin="anonymous"></audio>
+    </div>
+  </footer>
 
-    // util de fetch autenticado
-    async function api(path, options = {}) {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const headers = Object.assign(
-        { "Content-Type": "application/json" },
-        options.headers || {},
-        token ? { Authorization: "Bearer " + token } : {}
-      );
-      const res = await fetch(path, Object.assign({}, options, { headers }));
-      let data = {};
-      try { data = await res.json(); } catch {}
-      if (!res.ok) {
-        throw data || { error: "Erro HTTP " + res.status };
-      }
-      return data;
+<script>
+  // ====== estado ======
+  const TOKEN_KEY = "loove_token";
+  const FAVORITES_KEY = "loove_favs_v1";
+
+  let currentPrefix = "";           // pasta atual (ex.: "Flashback/")
+  let nextToken = null;             // paginação da lista
+  let items = [];                   // músicas listadas
+  let folders = [];                 // chips
+  let onlyFav = false;              // filtro
+  let queue = [];                   // fila para player
+  let index = -1;                   // índice atual da fila
+  let shuffle = false;
+  let repeat = false;
+
+  const el = id => document.getElementById(id);
+  const listEl = el("list");
+
+  // ====== util API com auth ======
+  async function api(path, opts = {}) {
+    const headers = Object.assign(
+      { "Content-Type":"application/json" },
+      opts.headers || {},
+      { Authorization: "Bearer " + localStorage.getItem(TOKEN_KEY) }
+    );
+    const res = await fetch(path, Object.assign({}, opts, { headers }));
+    const data = await res.json().catch(()=> ({}));
+    if (!res.ok) throw data || { error: "HTTP " + res.status };
+    return data;
+  }
+
+  function favs(){
+    try{ return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]"); }
+    catch{ return []; }
+  }
+  function setFavs(arr){ localStorage.setItem(FAVORITES_KEY, JSON.stringify(arr)); }
+  function isFav(key){ return favs().includes(key); }
+  function toggleFav(key){
+    const f = favs();
+    const i = f.indexOf(key);
+    if(i>=0) f.splice(i,1); else f.push(key);
+    setFavs(f); renderItems(); // atualiza corações/filtro
+  }
+
+  function humanSize(bytes){
+    if(!bytes && bytes!==0) return "";
+    const u=["B","KB","MB","GB","TB"]; let i=0; let b=bytes;
+    while(b>=1024 && i<u.length-1){ b/=1024; i++; }
+    return b.toFixed(1)+" "+u[i];
+  }
+
+  // ====== navegação ======
+  async function loadFolders(prefix=""){
+    const d = await api("/api/folders?prefix="+encodeURIComponent(prefix));
+    folders = (d.folders||[]);
+    const chips = el("chips");
+    chips.innerHTML = "";
+    if(prefix){
+      // chip de "SUBPASTA" atual
+      const span = document.createElement("span");
+      span.className = "pill";
+      span.textContent = "Pasta: "+prefix;
+      chips.appendChild(span);
     }
-
-    function showLogin(){
-      viewLogin.classList.remove("hidden");
-      viewApp.classList.add("hidden");
-      authInfo.classList.add("hidden");
-      msg.textContent = "";
-      inputPin.value = "";
-      inputPin.focus();
-    }
-    function showApp(){
-      viewLogin.classList.add("hidden");
-      viewApp.classList.remove("hidden");
-      authInfo.classList.remove("hidden");
-      authInfo.textContent = "Logado • expira em 7 dias";
-      el("status").textContent = "logado";
-    }
-
-    // inicia verificando sessão
-    (async function init(){
-      try { await api("/api/me"); showApp(); }
-      catch { showLogin(); }
-    })();
-
-    // login (clique e Enter)
-    async function doLogin(e){
-      e?.preventDefault();
-      const pin = inputPin.value.trim();
-      if (pin.length < 3){
-        msg.className="error";
-        msg.textContent="Digite pelo menos 3 dígitos.";
-        return;
-      }
-      msg.className="muted";
-      msg.textContent="Entrando...";
-      btnLogin.disabled = true;
-      console.log("[login] tentando...");
-
-      try {
-        const res = await fetch("/api/login", {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ pin })
-        });
-        const data = await res.json().catch(()=> ({}));
-        console.log("[login] resposta:", data);
-        if (!res.ok || !data.token) throw data;
-        localStorage.setItem(TOKEN_KEY, data.token);
-        msg.className="success";
-        msg.textContent="Login realizado!";
-        showApp();
-      } catch (e) {
-        console.error("[login] erro:", e);
-        msg.className="error";
-        msg.textContent = e?.error || "Falha no login";
-      } finally {
-        btnLogin.disabled = false;
-      }
-    }
-    formLogin.addEventListener("submit", doLogin);
-    btnLogin.addEventListener("click", doLogin);
-
-    // mostrar/ocultar PIN
-    el("togglePin").addEventListener("click", () => {
-      inputPin.type = inputPin.type === "password" ? "text" : "password";
-      inputPin.focus();
+    folders.forEach(f=>{
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.textContent = f.name || f.prefix;
+      b.onclick = ()=> enterFolder(f.prefix);
+      chips.appendChild(b);
     });
+  }
 
-    // sair
-    el("btnLogout").addEventListener("click", () => {
-      localStorage.removeItem(TOKEN_KEY);
-      result.innerHTML = "";
-      showLogin();
-    });
+  async function enterFolder(prefix){
+    currentPrefix = prefix;
+    el("where").textContent = prefix || "Raiz do bucket";
+    nextToken = null;
+    items = [];
+    renderItems();
+    await loadList();      // carrega primeira página
+    await loadFolders(prefix);
+  }
 
-    // testar sessão
-    el("btnCheck").addEventListener("click", async () => {
-      result.innerHTML = "";
-      try{
-        const me = await api("/api/me");
-        const div = document.createElement("div"); div.className="item";
-        div.innerHTML = `<div>Usuário logado ✅</div><div class="spacer"></div><code class="muted">${JSON.stringify(me.user)}</code>`;
-        result.appendChild(div);
-      }catch(e){
-        const div = document.createElement("div"); div.className="item";
-        div.innerHTML = `<div>Token inválido ❌</div><div class="spacer"></div><code class="error">${e?.error || "Erro"}</code>`;
-        result.appendChild(div); el("status").textContent="deslogado";
-      }
+  async function loadList(){
+    const url = "/api/list?prefix="+encodeURIComponent(currentPrefix) + (nextToken ? "&token="+encodeURIComponent(nextToken) : "");
+    const d = await api(url);
+    nextToken = d.nextToken || null;
+    // append mantendo apenas áudios
+    (d.items||[]).forEach(it => items.push(it));
+    renderItems();
+    el("btnMore").disabled = !nextToken;
+  }
+
+  function renderItems(){
+    let data = items.slice();
+    if(onlyFav){
+      const f = favs();
+      data = data.filter(x=>f.includes(x.key));
+    }
+    listEl.innerHTML = "";
+    if(data.length===0){
+      const div = document.createElement("div");
+      div.className = "card";
+      div.textContent = "Nenhuma música listada aqui.";
+      listEl.appendChild(div);
+      return;
+    }
+    data.forEach((m,idx)=>{
+      const row = document.createElement("div");
+      row.className = "item";
+      const like = document.createElement("button");
+      like.className = "iconbtn like" + (isFav(m.key)?" active":"");
+      like.textContent = "❤";
+      like.title = "Favoritar";
+      like.onclick = ()=> toggleFav(m.key);
+
+      const play = document.createElement("button");
+      play.className = "iconbtn play";
+      play.textContent = "▶";
+      play.onclick = ()=> playFromKey(m.key);
+
+      const info = document.createElement("div");
+      info.style.minWidth="0";
+      info.innerHTML = `<div class="title">${m.name}</div><div class="muted">${humanSize(m.size)}</div>`;
+
+      row.appendChild(like);
+      row.appendChild(play);
+      row.appendChild(info);
+      row.appendChild(document.createElement("div")).className="spacer";
+
+      listEl.appendChild(row);
     });
-  </script>
+  }
+
+  // ====== busca ======
+  async function doSearch(){
+    const q = el("q").value.trim();
+    if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
+    const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix));
+    items = d.items||[];
+    nextToken = null;
+    renderItems();
+  }
+
+  // ====== player ======
+  const audio = el("audio");
+  function setNow(name){ el("now").textContent = name || "Nada tocando"; }
+
+  async function playFromKey(key){
+    // stream url assinada
+    const d = await api("/api/stream?key="+encodeURIComponent(key));
+    audio.src = d.url;
+    // atualizar fila (a partir da lista atual filtrada)
+    const current = (onlyFav ? items.filter(x=>favs().includes(x.key)) : items);
+    queue = current.map(x=>x.key);
+    index = current.findIndex(x=>x.key===key);
+    setNow(current[index]?.name || key.split("/").pop());
+    audio.play();
+    el("btnMainPlay").textContent = "⏸";
+  }
+
+  function playIndex(i){
+    if(!queue.length) return;
+    if(i<0 || i>=queue.length) return;
+    index = i;
+    playFromKey(queue[index]);
+  }
+
+  el("btnMainPlay").onclick = ()=>{
+    if(!audio.src){ // se ainda não tem nada, tenta tocar primeira da lista visível
+      const current = (onlyFav ? items.filter(x=>favs().includes(x.key)) : items);
+      if(current.length){ playFromKey(current[0].key); }
+      return;
+    }
+    if(audio.paused){ audio.play(); el("btnMainPlay").textContent="⏸"; }
+    else { audio.pause(); el("btnMainPlay").textContent="▶"; }
+  };
+  el("btnPrev").onclick = ()=>{
+    if(shuffle){ index = Math.floor(Math.random()*queue.length); }
+    else index = Math.max(0, index-1);
+    playIndex(index);
+  };
+  el("btnNext").onclick = ()=>{
+    if(shuffle){ index = Math.floor(Math.random()*queue.length); }
+    else index = Math.min(queue.length-1, index+1);
+    playIndex(index);
+  };
+  el("btnShuffle").onclick = ()=>{ shuffle = !shuffle; alert("Aleatório: "+(shuffle?"ON":"OFF")); };
+  el("btnRepeat").onclick  = ()=>{ repeat  = !repeat;  alert("Repetir: "+(repeat?"ON":"OFF")); };
+  audio.addEventListener("ended", ()=>{
+    if(repeat){ playIndex(index); return; }
+    if(shuffle){ index = Math.floor(Math.random()*queue.length); playIndex(index); return; }
+    if(index<queue.length-1){ playIndex(index+1); }
+  });
+
+  // ====== botões/header ======
+  el("btnMore").onclick = ()=> loadList();
+  el("btnBack").onclick = ()=>{
+    if(!currentPrefix) return;
+    const p = currentPrefix.replace(/\/$/,""); // remove / final
+    const up = p.includes("/") ? p.split("/").slice(0,-1).join("/") + "/" : "";
+    enterFolder(up);
+  };
+  el("btnPlayAll").onclick = async ()=>{
+    const current = (onlyFav ? items.filter(x=>favs().includes(x.key)) : items);
+    if(!current.length) return alert("Nada para tocar aqui.");
+    queue = current.map(x=>x.key);
+    index = 0;
+    playFromKey(queue[0]);
+  };
+  el("btnSearch").onclick = doSearch;
+  el("q").addEventListener("keydown", e=>{ if(e.key==="Enter") doSearch(); });
+  el("btnOnlyFav").onclick = ()=>{
+    onlyFav = !onlyFav;
+    el("btnOnlyFav").textContent = "Apenas favoritos: " + (onlyFav?"ON":"OFF");
+    renderItems();
+  };
+  el("btnLogout").onclick = ()=>{
+    localStorage.removeItem(TOKEN_KEY);
+    location.reload();
+  };
+
+  // ====== boot ======
+  (async function init(){
+    // garante que está logado
+    try{ await api("/api/me"); }catch{ location.reload(); return; }
+    await enterFolder(""); // raiz
+  })();
+</script>
 </body>
 </html>
