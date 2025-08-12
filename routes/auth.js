@@ -1,80 +1,38 @@
 // routes/auth.js
 import { Router } from 'express';
-import { createUser, validatePassword, findUserByEmail } from '../lib/db.js';
-import { signSession } from '../lib/auth.js';
 
 const router = Router();
 
-const cookieOptions = {
+// Opções de cookie para a sessão (ajuste se necessário)
+const cookieOpts = {
   httpOnly: true,
-  secure: true,          // estamos em HTTPS no Render
+  secure: true,        // Render usa HTTPS; mantenha true
   sameSite: 'lax',
   path: '/',
-  maxAge: 30 * 24 * 3600 * 1000, // 30 dias
-  signed: true,           // usa COOKIE_SECRET
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 dias
 };
 
 /**
- * Registrar
+ * Acesso convidado (sem senha)
+ * GET /auth/guest
  */
-router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body || {};
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'missing' });
-  }
+router.get('/guest', (_req, res) => {
+  const user = { id: 'guest', name: 'Guest', role: 'guest' };
 
-  try {
-    const user = await createUser({ name, email, password });
-    const token = signSession({ uid: user.uid, email: user.email });
-    res.cookie('session', token, cookieOptions);
-    res.json({ ok: true, user: { uid: user.uid, name: user.name, email: user.email, plan: user.plan } });
-  } catch (e) {
-    res.status(400).json({ error: e?.message || 'error' });
-  }
-});
+  // conteúdo mínimo da “sessão”
+  const session = { uid: user.id, role: user.role, iat: Date.now() };
 
-/**
- * Login
- */
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ error: 'missing' });
-  }
-
-  const user = await validatePassword(email, password);
-  if (!user) {
-    return res.status(401).json({ error: 'invalid' });
-  }
-
-  const token = signSession({ uid: user.uid, email: user.email });
-  res.cookie('session', token, cookieOptions);
-  res.json({ ok: true, user: { uid: user.uid, name: user.name, email: user.email, plan: user.plan } });
+  res.cookie('session', JSON.stringify(session), cookieOpts);
+  res.status(200).json({ ok: true, user });
 });
 
 /**
  * Logout
+ * POST /auth/logout
  */
-router.post('/logout', (req, res) => {
+router.post('/logout', (_req, res) => {
   res.clearCookie('session', { path: '/' });
   res.json({ ok: true });
-});
-
-/**
- * Guest (acesso sem senha)
- * GET /auth/guest  → cria uma sessão "guest" e redireciona para "/"
- */
-router.get('/guest', (req, res) => {
-  const token = signSession({
-    uid: 'guest',
-    email: 'guest@loove',
-    name: 'Guest',
-    plan: 'free',
-  });
-
-  res.cookie('session', token, cookieOptions);
-  // redireciona para a home do app
-  res.redirect('/');
 });
 
 export default router;
