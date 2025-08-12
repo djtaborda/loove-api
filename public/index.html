@@ -148,14 +148,16 @@
         </div>
       </div>
 
-      <!-- logo central -->
+      <!-- logo central (corrigida) -->
       <div class="logo-wrap">
-        <!-- AQUI trocamos para o .webp -->
-        <img class="logo" src="/img/logolove.webp" alt="Loove music" />
+        <picture>
+          <source srcset="/logolove.webp" type="image/webp">
+          <img class="logo" src="/loove-logo.png" alt="Loove music">
+        </picture>
       </div>
       <div class="tagline">AQUI TODO MUNDO AMA MÚSICA</div>
 
-      <!-- apenas o input de busca (Enter faz a busca) -->
+      <!-- somente o campo de busca -->
       <div class="search">
         <input id="q" type="search" placeholder="Qual música você quer ouvir? (aperte Enter)" />
       </div>
