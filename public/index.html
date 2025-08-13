@@ -7,9 +7,8 @@
 <style>
   :root{
     --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
-    --neon:#31e1ff; --accent:#ff2fb3;
+    --accent:#ff2fb3;
     --amber:#ff9f1a; --amber-2:#ffb02e; --amber-3:#ff7a00;
-    --chip-bg:#0d1320;
   }
   *{box-sizing:border-box}
   body{
@@ -25,14 +24,12 @@
   /* ======= HEADER ======= */
   header{position:relative; padding-top:12px; margin-bottom:12px}
   .userbox{position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
-  .userbox .name{display:none} /* esconde texto 'Usuário' */
-
-  /* avatar (flat) */
+  .userbox .name{display:none} /* não mostrar texto do usuário */
   .avatar{width:44px; height:44px; display:grid; place-items:center; border-radius:50%}
   .avatar svg{width:30px; height:30px; stroke:#ffffff; opacity:.95}
 
-  /* ===== Menu lateral (drawer) ===== */
-  .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:saturate(120%) blur(2px); display:none; z-index:60}
+  /* ===== Drawer lateral ===== */
+  .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:60}
   .backdrop.open{display:block}
   .menu{position:fixed; top:0; right:0; height:100%; width:320px; background:linear-gradient(180deg,#0f1624,#0b101a);
         border-left:1px solid rgba(255,255,255,.1); box-shadow:0 20px 60px rgba(0,0,0,.6);
@@ -45,11 +42,10 @@
   .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
 
-  /* logo central */
+  /* logo */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  .logo{width:min(680px, 88%); height:auto; display:block; filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
+  .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
   @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
-
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
   /* busca */
@@ -59,7 +55,7 @@
 
   /* chips premium */
   .chips{display:flex; gap:10px; flex-wrap:wrap; margin:10px auto 14px; justify-content:center}
-  .chip-premium{background:#0d1320; color:var(--text); border:2px solid var(--amber-3); padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px; box-shadow:0 4px 16px rgba(255,140,0,.15)}
+  .chip-premium{background:#0d1320; color:var(--text); border:2px solid var(--amber-3); padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px; box-shadow: 0 4px 16px rgba(255,140,0,.15)}
   .chip-premium:hover{ box-shadow: 0 0 0 2px rgba(255,140,0,.35), 0 8px 20px rgba(255,140,0,.25); transform:translateY(-1px) }
 
   .muted{color:#9aa4b2}
@@ -73,7 +69,7 @@
   .folderBtn{display:flex; align-items:center; justify-content:center; text-align:center; min-height:92px; padding:10px; border-radius:18px; cursor:pointer; background:linear-gradient(180deg, var(--amber-2), var(--amber-3)); color:#0b0f14; font-weight:900; font-size:20px; text-transform:uppercase; border:2px solid #ffcc6b; box-shadow: 0 6px 20px rgba(255,140,0,.25); position:relative}
   .folderBtn::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.9; }
 
-  /* ===== LISTA DE MÚSICAS ===== */
+  /* ===== LISTA ===== */
   .list{margin:0; padding:0}
   .track{list-style:none; position:relative; display:flex; align-items:center; gap:12px;
          background:#0f1726; border:1px solid rgba(255,255,255,.06);
@@ -94,34 +90,25 @@
   .t-kebab{width:42px; height:42px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer}
   .t-kebab svg{width:24px; height:24px; stroke:#ffffff; opacity:.95}
 
-  /* ===== Menu do item (⋯) ===== */
+  /* Menu do item (⋯) alinhado à direita */
   .t-menu{
     position:absolute; right:6px; top:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12);
     padding:10px; border-radius:12px; display:none; min-width:260px; z-index:5; text-align:right;
   }
   .t-menu.open{display:block}
-
-  /* escopo correto para não conflitar com outros menus */
   .t-menu .menu-item{
     width:100%; text-align:right; padding:10px 12px; border-radius:10px; color:#e6ecf2;
     background:transparent; border:1px solid transparent; cursor:pointer; font-weight:700; display:block;
   }
   .t-menu .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
-
-  /* Premium: botão laranja, largura menor e espaçamento maior */
   .t-menu .menu-item.premium{
-    background:linear-gradient(180deg,#ff9f1a,#ff6a00);
-    color:#0b0f14; border:none; font-weight:900;
-    width:88%;            /* largura menor */
-    margin:10px 6px 0 auto; /* mais espaço entre botões e alinhado à direita */
-    padding:12px 16px;
-    border-radius:12px;
-    box-shadow:0 6px 18px rgba(255,140,0,.35);
-    text-align:right; display:block;
+    background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; border:none; font-weight:900;
+    width:88%; margin:10px 6px 0 auto; padding:12px 16px; border-radius:12px;
+    box-shadow:0 6px 18px rgba(255,140,0,.35); text-align:right; display:block;
   }
   .t-menu .menu-item.premium:hover{filter:brightness(1.05)}
 
-  /* Botão "Carregar mais" centralizado ao fim da lista */
+  /* Botão "Carregar mais" central no fim da lista */
   .loadmore-wrap{display:flex; justify-content:center; margin:14px 0 4px}
   .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:var(--text); padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:700}
   .btn:hover{transform:translateY(-1px)}
@@ -135,7 +122,6 @@
   .track-right{margin-left:auto; display:flex; align-items:center; gap:8px}
   .kebab{width:34px; height:34px; border-radius:10px; background:transparent; border:none; color:#e6ecf2; display:grid;place-items:center; cursor:pointer}
   .track-sub{font-size:12px; color:#9aa4b2; margin-top:-2px}
-
   .progress{width:100%; margin-bottom:10px}
   .seek{appearance:none; width:100%; height:6px; border-radius:999px; background:#2a3342; outline:none}
   .seek::-webkit-slider-thumb{appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid #bbb}
@@ -146,7 +132,6 @@
   .p-btn svg{width:28px; height:28px; stroke:#ffffff; opacity:.9}
   .p-btn:hover svg{opacity:1; filter:drop-shadow(0 0 4px rgba(255,255,255,.25))}
   .p-btn.active svg{stroke:#31e1ff}
-
   .p-play{width:62px; height:62px; border-radius:999px; background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; border:none; display:grid; place-items:center; box-shadow:0 8px 30px rgba(255,140,0,.35)}
   .p-play svg{width:28px; height:28px; stroke:#ffffff}
 
@@ -158,30 +143,8 @@
 
   .menu-pop{position:absolute; bottom:64px; right:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none; min-width:240px}
   .menu-pop.open{display:block}
-  /* escopo do menu do player para não quebrar o alinhamento do t-menu */
   .menu-pop .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-pop .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
-
-  /* ===== POPUP PREMIUM ===== */
-  .pm-back{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; z-index:80}
-  .pm-back.open{display:block}
-  .pm-modal{
-    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:min(520px, 92vw); background:linear-gradient(180deg,#121826,#0c111b);
-    border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:18px; display:none; z-index:90;
-    box-shadow:0 30px 80px rgba(0,0,0,.6)
-  }
-  .pm-modal.open{display:block}
-  .pm-top{display:flex; align-items:center; justify-content:space-between; gap:12px}
-  .pm-title{font-weight:900; font-size:20px}
-  .pm-sub{color:#9aa4b2; margin-top:4px}
-  .pm-close{appearance:none; border:none; background:transparent; color:#e6ecf2; font-size:24px; cursor:pointer}
-  .pm-list{margin:14px 0 16px; padding:0; list-style:none}
-  .pm-item{display:flex; align-items:center; gap:10px; padding:8px 0}
-  .pm-item svg{width:20px; height:20px; stroke:#31e1ff}
-  .pm-cta{display:block; width:100%; padding:14px 16px; border:none; border-radius:14px; cursor:pointer;
-          background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; font-weight:900; font-size:16px}
-  .pm-price{font-weight:900; color:#fff; font-size:18px; margin-top:8px}
 </style>
 </head>
 <body>
@@ -296,35 +259,21 @@
       <div id="menuPop" class="menu-pop">
         <button class="menu-item" id="miShare">Compartilhar</button>
         <button class="menu-item" id="miFav">Favoritar</button>
-        <button class="menu-item premium" id="miDown">Baixar (Premium)</button>
-        <button class="menu-item premium" id="miCreatePl">Criar playlist (Premium)</button>
-        <button class="menu-item premium" id="miSavePl">Salvar playlist (Premium)</button>
+        <button class="menu-item" id="miDown">Baixar (Premium)</button>
+        <button class="menu-item" id="miCreatePl">Criar playlist (Premium)</button>
+        <button class="menu-item" id="miSavePl">Salvar playlist (Premium)</button>
       </div>
     </div>
     <audio id="audio" crossorigin="anonymous"></audio>
   </footer>
 
-  <!-- POPUP PREMIUM -->
-  <div id="pmBack" class="pm-back"></div>
-  <div id="pmModal" class="pm-modal" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
-    <div class="pm-top">
-      <div>
-        <div id="pmTitle" class="pm-title">Seja Premium</div>
-        <div class="pm-price">Apenas R$9,90 por mês</div>
-        <div class="pm-sub">Desbloqueie todos os recursos do Loove.</div>
-      </div>
-      <button id="pmClose" class="pm-close" aria-label="Fechar">×</button>
-    </div>
-    <ul class="pm-list" id="pmList"></ul>
-    <button id="pmCTA" class="pm-cta">Seja Premium</button>
-  </div>
-
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
   const PREMIUM_PREFIX = "PREMIUM/";
-  const PREMIUM_URL = "/assinatura"; // ajuste se necessário
+  const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
+  const goPremium = ()=> location.href = PREMIUM_URL;
 
   /* ===== SVGs ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
@@ -348,7 +297,6 @@
   function icoDownload(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round"/><path d="M5 21h14" stroke-width="2" stroke-linecap="round"/></svg>`}
   function icoStar(){return `<svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" stroke-width="2" stroke-linejoin="round"/></svg>`}
   function icoCard(){return `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke-width="2"/><path d="M3 10h18" stroke-width="2"/></svg>`}
-  function icoDiamond(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 9 7 3h10l4 6-9 12L3 9Z" stroke-width="2" stroke-linejoin="round"/></svg>`}
 
   function setFlatIcons(){
     el("pHome").innerHTML = icoHome();
@@ -362,7 +310,6 @@
     const av = document.getElementById("avatarIcon");
     if(av) av.innerHTML = icoUser();
 
-    // Ícones e textos do drawer
     el("miHome").innerHTML      = icoHome()     + ' Início';
     el("miAccount").innerHTML   = icoAccount()  + ' Conta';
     el("miSearch").innerHTML    = icoSearch()   + ' Buscar';
@@ -395,10 +342,8 @@
   let premiumFolders = [];
 
   async function ensureAuth(){
-    try {
-      await api("/api/me");
-      show("app"); hide("viewLogin");
-    } catch { hide("app"); show("viewLogin"); }
+    try { await api("/api/me"); show("app"); hide("viewLogin"); }
+    catch { hide("app"); show("viewLogin"); }
   }
   el("formLogin").addEventListener("submit", async ()=>{
     const pin = el("pin").value.trim();
@@ -467,7 +412,6 @@
         else{
           alert("Playlist premium específica não encontrada. Abrindo a seção premium para você escolher.");
           enterFolder(PREMIUM_PREFIX);
-          console.log("Pastas premium:", premiumFolders.map(x=>x.name));
         }
       };
     });
@@ -481,7 +425,7 @@
     currentPrefix = prefix || ""; nextToken = null; items = [];
     hide("viewHome"); hide("viewFavs"); show("viewList");
     el("list").innerHTML = "";
-    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ openPremiumModal(); }
+    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
     await loadMore();
   }
   async function loadMore(){
@@ -497,7 +441,7 @@
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
-  /* duração lazy */
+  /* duração lazy (corrigido) */
   const durationCache = new Map();
   const visObs = new IntersectionObserver((entries)=>{
     entries.forEach(en=>{
@@ -565,7 +509,6 @@
       keb.onclick = (e)=>{ e.stopPropagation(); closeAllItemMenus(); menu.classList.toggle("open"); };
       document.addEventListener("click",(ev)=>{ if(!menu.contains(ev.target) && !keb.contains(ev.target)) menu.classList.remove("open"); });
 
-      // ações do menu
       menu.querySelector(".miShare").onclick = async ()=>{
         try{
           if(navigator.share){ await navigator.share({ title: formatTitle(m.name), text:"Ouça no Loove", url: location.href }); }
@@ -578,9 +521,8 @@
         like.classList.toggle("active");
         menu.classList.remove("open");
       };
-      // premium -> abre modal
       menu.querySelectorAll(".premium").forEach(btn=>{
-        btn.addEventListener("click", ()=>{ menu.classList.remove("open"); openPremiumModal(); });
+        btn.addEventListener("click", ()=>{ menu.classList.remove("open"); goPremium(); });
       });
 
       right.appendChild(like);
@@ -635,16 +577,11 @@
   });
   seek.addEventListener("input", ()=>{ const dur=audio.duration||0; if(dur<=0) return; audio.currentTime = (Number(seek.value)/1000)*dur; updateTimeUI(); });
 
-  function setPlayIcon(isPlaying){
-    el("pPlay").innerHTML = isPlaying ? icoPause() : icoPlay();
-  }
-  pPlay.onclick = ()=>{
-    if(!audio.src) return;
-    if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); }
-  };
+  function setPlayIcon(isPlaying){ el("pPlay").innerHTML = isPlaying ? icoPause() : icoPlay(); }
+  pPlay.onclick = ()=>{ if(!audio.src) return; if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); } };
   pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
   pNext.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx<items.length-1) playKey(items[idx+1].key, items[idx+1].name); } };
-  pHome.onclick = ()=> enterFolder(""); // volta para raiz
+  pHome.onclick = ()=> enterFolder("");
   pSearch.onclick = ()=> el("q").focus();
   pShuffle.onclick = ()=>{ shuffleOn=!shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
   pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
@@ -659,9 +596,9 @@
 
   el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
   el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
-  el("miDown").onclick = openPremiumModal;
-  el("miCreatePl").onclick = openPremiumModal;
-  el("miSavePl").onclick = openPremiumModal;
+  el("miDown").onclick = goPremium;
+  el("miCreatePl").onclick = goPremium;
+  el("miSavePl").onclick = goPremium;
 
   async function playKey(key,name){
     const d = await api("/api/stream?key="+encodeURIComponent(key));
@@ -686,10 +623,10 @@
       case "home": enterFolder(""); break;
       case "account": alert("Conta: em breve."); break;
       case "search": el("q").focus(); break;
-      case "playlists": enterFolder(PREMIUM_PREFIX); break;
+      case "playlists": enterFolder(PREMIUM_PREFIX); break;    // vai redirecionar
       case "downloads": alert("Downloads: em breve."); break;
       case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
-      case "billing": openPremiumModal(); break;
+      case "billing": goPremium(); break;
       case "settings": alert("Configurações: em breve."); break;
       case "notify": alert("Notificações: em breve."); break;
       case "help": alert("Ajuda: suporte@loove.app"); break;
@@ -697,7 +634,7 @@
     }
   });
 
-  /* ===== Navegação básica ===== */
+  /* ===== Navegação ===== */
   el("btnMore").onclick = loadMore;
 
   function renderFavs(){
@@ -712,34 +649,6 @@
     });
   }
 
-  /* ===== POPUP PREMIUM ===== */
-  const pmBack = el("pmBack");
-  const pmModal = el("pmModal");
-  const pmList = el("pmList");
-  const pmClose = el("pmClose");
-  const pmCTA = el("pmCTA");
-
-  function openPremiumModal(){
-    const bens = ["Recursos Ilimitados","Baixe suas músicas","Escute Off-Line","Crie suas Playlists","Receba Brindes"];
-    pmList.innerHTML = "";
-    bens.forEach(txt=>{
-      const li = document.createElement("li");
-      li.className = "pm-item";
-      li.innerHTML = `${icoDiamond()} <span>${txt}</span>`;
-      pmList.appendChild(li);
-    });
-    pmBack.classList.add("open");
-    pmModal.classList.add("open");
-  }
-  function closePremiumModal(){
-    pmBack.classList.remove("open");
-    pmModal.classList.remove("open");
-  }
-  pmBack.addEventListener("click", closePremiumModal);
-  pmClose.addEventListener("click", closePremiumModal);
-  document.addEventListener("keydown", e=>{ if(e.key==="Escape") closePremiumModal(); });
-  pmCTA.addEventListener("click", ()=>{ location.href = PREMIUM_URL; });
-
   async function ensureAuthAndLoad(){
     await ensureAuth();
     if(el("app").style.display!=="none"){
@@ -750,7 +659,6 @@
     }
   }
   ensureAuthAndLoad();
-
   async function boot(){ await ensureAuthAndLoad(); }
 </script>
 </body>
