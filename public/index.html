@@ -627,8 +627,8 @@
       case "downloads": location.href = "/downloads.html"; break;     // ALTERADO
       case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
       case "billing": goPremium(); break;
-      case "settings": alert("Configurações: em breve."); break;
-      case "notify": alert("Notificações: em breve."); break;
+      case "settings": location.href = "/configuracoes.html"; break;
+      case "notify":   location.href = "/notificacoes.html"; break;
       case "help": location.href = "/ajuda.html"; break;              // ALTERADO
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
