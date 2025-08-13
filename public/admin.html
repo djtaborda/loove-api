@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loove • Admin</title>
+<style>
+  :root{ --bg:#0b0f14; --card:#121826; --line:#ffffff14; --text:#e6ecf2; --muted:#9aa4b2; --amber1:#ff9f1a; --amber2:#ff6a00; --red:#ff4d4f; --green:#28e36a; }
+  *{box-sizing:border-box}
+  body{ margin:0; color:var(--text); background:var(--bg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif }
+  .wrap{max-width:1100px; margin:0 auto; padding:18px 16px 80px}
+  .bar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+  input, select{padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#0d1320; color:#fff}
+  .btn{appearance:none; border:1px solid var(--line); background:#121b2b; color:#fff; padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer}
+  .btn-primary{border:none; background:linear-gradient(180deg,var(--amber1),var(--amber2)); color:#0b0f14; box-shadow:0 10px 28px rgba(255,140,0,.35)}
+  .btn-danger{border:none; background:#7a0f1a}
+  .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0}
+  table{width:100%; border-collapse:collapse}
+  th,td{border-bottom:1px solid var(--line); padding:10px 8px; text-align:left; font-size:14px}
+  .tags{display:flex; gap:6px; flex-wrap:wrap}
+  .tag{padding:3px 8px; border-radius:999px; border:1px solid var(--line); background:#172033; font-size:12px; font-weight:800}
+  .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none}
+  .modal-bg.open{display:block}
+  .modal{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(520px,92vw); background:linear-gradient(180deg,#121826,#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; display:none}
+  .modal.open{display:block}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .row > div{display:flex; flex-direction:column}
+  label{font-size:12px; color:var(--muted); font-weight:700}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <a class="btn" href="/">⟵ App</a>
+      <input id="q" type="search" placeholder="Buscar por e-mail, tags, nome, datas...">
+      <select id="qTag">
+        <option value="">Tag</option>
+        <option>Free</option><option>Premium</option><option>Gold</option>
+      </select>
+      <button id="btnNew" class="btn btn-primary">Adicionar usuário</button>
+      <button id="btnNotify" class="btn">Enviar Notificação</button>
+      <button id="btnEmail" class="btn">Enviar E-mail</button>
+    </div>
+
+    <section class="card">
+      <table id="tbl">
+        <thead>
+          <tr><th>Nome</th><th>E-mail</th><th>CPF</th><th>Celular</th><th>Tags</th><th>Cadastro</th><th>Uso Total</th><th>Médio/Dia</th><th>Ações</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- modal usuário -->
+  <div id="bg" class="modal-bg"></div>
+  <div id="dlg" class="modal">
+    <h3>Usuário</h3>
+    <div class="row">
+      <div><label>Nome</label><input id="fNome" type="text"></div>
+      <div><label>E-mail</label><input id="fEmail" type="email"></div>
+      <div><label>CPF</label><input id="fCpf" type="text"></div>
+      <div><label>Celular</label><input id="fCel" type="text"></div>
+      <div><label>Senha</label><input id="fPwd" type="password"></div>
+      <div><label>Tags</label>
+        <select id="fTag"><option>Free</option><option>Premium</option><option>Gold</option></select>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:12px">
+      <button id="ok" class="btn btn-primary">Salvar</button>
+      <button id="cx" class="btn">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- modal mensagem -->
+  <div id="msgBg" class="modal-bg"></div>
+  <div id="msgDlg" class="modal">
+    <h3>Mensagem</h3>
+    <textarea id="msgTxt" rows="5" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--line); background:#0d1320; color:#fff"></textarea>
+    <div style="display:flex; gap:10px; margin-top:12px">
+      <button id="msgOk" class="btn btn-primary">Enviar</button>
+      <button id="msgCx" class="btn">Cancelar</button>
+    </div>
+    <div id="msgInfo" style="margin-top:8px; color:#9aa4b2"></div>
+  </div>
+
+<script>
+  const ADMIN_KEY="loove_admin_users_v1";
+  const USAGE_KEY="loove_usage_stats"; // produzido pelo index.html
+
+  const el=id=>document.getElementById(id);
+  const $=sel=>document.querySelector(sel);
+
+  function nowISO(){ return new Date().toISOString(); }
+  function fmtMs(ms){ const s=Math.floor(ms/1000); const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); return h+"h "+m+"m"; }
+
+  function getUsers(){ try{return JSON.parse(localStorage.getItem(ADMIN_KEY)||"[]");}catch{return[];} }
+  function setUsers(a){ localStorage.setItem(ADMIN_KEY, JSON.stringify(a)); }
+
+  // seed inicial se vazio
+  if(!getUsers().length){
+    setUsers([
+      {id:crypto.randomUUID(), nome:"Usuário Demo", email:"demo@loove.com", cpf:"000.000.000-00", cel:"(11) 90000-0000", tag:"Free", cad:nowISO(), usoTot:0, usoMed:0, bloqueado:false}
+    ]);
+  }
+
+  function render(){
+    const q=el("q").value.toLowerCase().trim();
+    const tq=el("qTag").value;
+    const tb= $("#tbl tbody"); tb.innerHTML="";
+    getUsers().filter(u=>{
+      if(tq && u.tag!==tq) return false;
+      if(!q) return true;
+      return (u.nome+u.email+u.cpf+u.cel+u.tag).toLowerCase().includes(q);
+    }).forEach(u=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${u.nome}${u.bloqueado?' <span style="color:#ff7376">(bloqueado)</span>':''}</td>
+        <td>${u.email}</td><td>${u.cpf||""}</td><td>${u.cel||""}</td>
+        <td><span class="tag">${u.tag}</span></td>
+        <td>${(u.cad||"").slice(0,10)}</td>
+        <td>${fmtMs(u.usoTot||0)}</td>
+        <td>${fmtMs(u.usoMed||0)}</td>
+        <td>
+          <button class="btn" data-ed="${u.id}">Editar</button>
+          <button class="btn btn-danger" data-del="${u.id}">Excluir</button>
+          <button class="btn" data-bl="${u.id}">${u.bloqueado?'Desbloquear':'Bloquear'}</button>
+        </td>`;
+      tb.appendChild(tr);
+    });
+
+    // bind actions
+    tb.querySelectorAll("[data-ed]").forEach(b=> b.onclick=()=>openUser(b.getAttribute("data-ed")));
+    tb.querySelectorAll("[data-del]").forEach(b=> b.onclick=()=>{ const id=b.getAttribute("data-del"); setUsers(getUsers().filter(x=>x.id!==id)); render(); });
+    tb.querySelectorAll("[data-bl]").forEach(b=> b.onclick=()=>{ const id=b.getAttribute("data-bl"); const arr=getUsers(); const u=arr.find(x=>x.id===id); u.bloqueado=!u.bloqueado; setUsers(arr); render(); });
+  }
+
+  // modal usuário
+  function openUser(id){
+    const u = id ? getUsers().find(x=>x.id===id) : {id:crypto.randomUUID(), cad:nowISO(), tag:"Free"};
+    el("fNome").value=u?.nome||""; el("fEmail").value=u?.email||""; el("fCpf").value=u?.cpf||"";
+    el("fCel").value=u?.cel||""; el("fPwd").value=""; el("fTag").value=u?.tag||"Free";
+    el("bg").classList.add("open"); el("dlg").classList.add("open");
+    el("ok").onclick=()=>{
+      const arr=getUsers();
+      const data={
+        id: u.id,
+        nome: el("fNome").value.trim(),
+        email: el("fEmail").value.trim(),
+        cpf: el("fCpf").value.trim(),
+        cel: el("fCel").value.trim(),
+        tag: el("fTag").value,
+        cad: u.cad || nowISO(),
+        usoTot: u.usoTot||0,
+        usoMed: u.usoMed||0,
+        bloqueado: u.bloqueado||false
+      };
+      const i=arr.findIndex(x=>x.id===u.id);
+      if(i>=0) arr[i]=data; else arr.push(data);
+      setUsers(arr); closeUser(); render();
+    }
+  }
+  function closeUser(){ el("bg").classList.remove("open"); el("dlg").classList.remove("open"); }
+  el("bg").onclick=closeUser; el("cx").onclick=closeUser;
+
+  // mensagens
+  function openMsg(kind){
+    el("msgTxt").value=""; el("msgInfo").textContent="Destino: "+(el("qTag").value||"Todos")+(el("q").value?(" • filtro: '"+el("q").value+"'"):"");
+    el("msgBg").classList.add("open"); el("msgDlg").classList.add("open");
+    el("msgOk").onclick=()=>{
+      const msg=el("msgTxt").value.trim(); if(!msg) return;
+      // Aqui você pode trocar por chamadas reais:
+      // fetch('/api/admin/'+(kind==='email'?'email':'notify'), {method:'POST', body:JSON.stringify({...})})
+      alert(kind==="email"?"E-mail enviado!":"Notificação enviada!");
+      closeMsg();
+    }
+  }
+  function closeMsg(){ el("msgBg").classList.remove("open"); el("msgDlg").classList.remove("open"); }
+  el("msgBg").onclick=closeMsg; el("msgCx").onclick=closeMsg;
+
+  // binds
+  el("btnNew").onclick=()=>openUser(null);
+  el("btnNotify").onclick=()=>openMsg("push");
+  el("btnEmail").onclick=()=>openMsg("email");
+  el("q").oninput=render; el("qTag").onchange=render;
+
+  // se existir estatística local do usuário atual, atualiza na primeira linha (demo)
+  (function mergeUsageDemo(){
+    const u = JSON.parse(localStorage.getItem(USAGE_KEY)||"null");
+    if(!u) return;
+    const arr=getUsers();
+    if(arr.length){
+      arr[0].usoTot = u.secondsTotal*1000;
+      arr[0].usoMed = Math.round((u.secondsTotal/Math.max(1,u.days))*1000);
+      setUsers(arr);
+    }
+  })();
+
+  render();
+</script>
+</body>
+</html>
