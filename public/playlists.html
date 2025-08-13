@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loove • Minhas Playlists</title>
+<style>
+  :root{ --bg:#0b0f14; --card:#121826; --line:#ffffff14; --text:#e6ecf2; --muted:#9aa4b2; --amber1:#ff9f1a; --amber2:#ff6a00; }
+  *{box-sizing:border-box}
+  body{ margin:0; color:var(--text); background:var(--bg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif }
+  .wrap{max-width:980px; margin:0 auto; padding:18px 16px 60px}
+  .top{display:flex; align-items:center; justify-content:space-between}
+  .btn{appearance:none; border:1px solid var(--line); background:#121b2b; color:#fff; padding:12px 16px; border-radius:12px; font-weight:800; cursor:pointer}
+  .btn-primary{border:none; background:linear-gradient(180deg,var(--amber1),var(--amber2)); color:#0b0f14; box-shadow:0 10px 28px rgba(255,140,0,.35)}
+  .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0}
+  h3{margin:6px 0 10px}
+  .list{list-style:none; margin:0; padding:0}
+  .li{padding:12px 10px; border:1px solid var(--line); border-radius:12px; margin:8px 0; display:flex; align-items:center; justify-content:space-between; background:#0e1522}
+  .note{color:var(--muted); font-size:12px}
+  .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none}
+  .modal-bg.open{display:block}
+  .modal{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(420px,92vw); background:linear-gradient(180deg,#121826,#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; display:none}
+  .modal.open{display:block}
+  input{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:#0d1320; color:#fff}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="btn" href="/">⟵ Voltar</a>
+      <button id="btnNew" class="btn btn-primary">Criar Playlist</button>
+    </div>
+
+    <section class="card">
+      <h3>Playlists Favoritas</h3>
+      <ul id="favList" class="list"></ul>
+      <div id="favEmpty" class="note">Você ainda não favoritou músicas.</div>
+    </section>
+
+    <section class="card">
+      <h3>Todas as Playlists Criadas</h3>
+      <ul id="myList" class="list"></ul>
+      <div id="plEmpty" class="note">Nenhuma playlist criada ainda.</div>
+    </section>
+  </div>
+
+  <!-- modal nova playlist -->
+  <div id="bg" class="modal-bg"></div>
+  <div id="dlg" class="modal" role="dialog" aria-modal="true">
+    <h3>Nova playlist</h3>
+    <input id="plName" type="text" placeholder="Nome da playlist">
+    <div style="display:flex; gap:10px; margin-top:10px">
+      <button id="ok" class="btn btn-primary" style="flex:1">Criar</button>
+      <button id="cx" class="btn">Cancelar</button>
+    </div>
+  </div>
+
+<script>
+  const FAVORITES_KEY="loove_favs_v1";
+  const USERPL_KEY="loove_user_playlists_v1";
+  const el=id=>document.getElementById(id);
+
+  function favs(){ try{return JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]");}catch{return[];} }
+
+  function renderFavs(){
+    const cont=el("favList"); cont.innerHTML="";
+    const f=favs(); el("favEmpty").style.display=f.length?"none":"";
+    f.forEach(k=>{
+      const li=document.createElement("li"); li.className="li";
+      li.innerHTML=`<div>${k}</div><a class="btn" href="/?key=${encodeURIComponent(k)}">Reproduzir</a>`;
+      cont.appendChild(li);
+    });
+  }
+
+  function getPlaylists(){ try{return JSON.parse(localStorage.getItem(USERPL_KEY)||"[]");}catch{return[];} }
+  function setPlaylists(a){ localStorage.setItem(USERPL_KEY, JSON.stringify(a)); }
+  function renderMy(){
+    const cont=el("myList"); cont.innerHTML="";
+    const list=getPlaylists(); el("plEmpty").style.display=list.length?"none":"";
+    list.forEach(p=>{
+      const li=document.createElement("li"); li.className="li";
+      li.innerHTML=`<div><strong>${p.name}</strong> <span class="note">(${(p.items||[]).length} músicas)</span></div>
+        <div style="display:flex; gap:8px">
+          <a class="btn" href="/">Abrir</a>
+          <button class="btn" data-del="${p.id}">Excluir</button>
+        </div>`;
+      cont.appendChild(li);
+    });
+    cont.querySelectorAll("[data-del]").forEach(b=>{
+      b.onclick=()=>{ const id=b.getAttribute("data-del"); const arr=getPlaylists().filter(x=>x.id!==id); setPlaylists(arr); renderMy(); };
+    });
+  }
+
+  function openNew(){ el("bg").classList.add("open"); el("dlg").classList.add("open"); el("plName").focus(); }
+  function closeNew(){ el("bg").classList.remove("open"); el("dlg").classList.remove("open"); el("plName").value=""; }
+
+  el("btnNew").onclick=openNew; el("bg").onclick=closeNew; el("cx").onclick=closeNew;
+  el("ok").onclick=()=>{
+    const name=el("plName").value.trim(); if(!name) return;
+    const arr=getPlaylists();
+    arr.push({id:crypto.randomUUID(), name, items:[]});
+    setPlaylists(arr); closeNew(); renderMy();
+  }
+
+  renderFavs(); renderMy();
+</script>
+</body>
+</html>
