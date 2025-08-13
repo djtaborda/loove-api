@@ -25,7 +25,7 @@
   /* ======= HEADER ======= */
   header{position:relative; padding-top:12px; margin-bottom:12px}
   .userbox{position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
-  .userbox .name{display:none} /* esconder texto do usuário */
+  .userbox .name{display:none} /* esconde o texto 'Usuário' */
 
   /* avatar estilo botões do player (flat) */
   .avatar{width:44px; height:44px; display:grid; place-items:center; border-radius:50%}
@@ -93,10 +93,23 @@
   .t-like.active svg{stroke:var(--accent); filter:drop-shadow(0 0 4px rgba(255,47,179,.35))}
   .t-kebab{width:42px; height:42px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer}
   .t-kebab svg{width:24px; height:24px; stroke:#ffffff; opacity:.95}
-  .t-menu{position:absolute; right:6px; top:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none; min-width:240px; z-index:5}
+
+  /* Menu do item: alinhado à direita */
+  .t-menu{
+    position:absolute; right:6px; top:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12);
+    padding:8px; border-radius:12px; display:none; min-width:260px; z-index:5; text-align:right;
+  }
   .t-menu.open{display:block}
-  .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
+  .menu-item{
+    width:100%; text-align:right; padding:10px 12px; border-radius:10px; color:#e6ecf2;
+    background:transparent; border:1px solid transparent; cursor:pointer; font-weight:700;
+  }
   .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+  /* Premium destacado em laranja (tipo botão) */
+  .menu-item.premium{
+    background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; border:none; font-weight:900;
+  }
+  .menu-item.premium:hover{filter:brightness(1.05)}
 
   /* Botão "Carregar mais" centralizado ao fim da lista */
   .loadmore-wrap{display:flex; justify-content:center; margin:14px 0 4px}
@@ -137,6 +150,27 @@
   .menu-pop.open{display:block}
   .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+
+  /* ===== POPUP PREMIUM ===== */
+  .pm-back{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; z-index:80}
+  .pm-back.open{display:block}
+  .pm-modal{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(520px, 92vw); background:linear-gradient(180deg,#121826,#0c111b);
+    border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:18px; display:none; z-index:90;
+    box-shadow:0 30px 80px rgba(0,0,0,.6)
+  }
+  .pm-modal.open{display:block}
+  .pm-top{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .pm-title{font-weight:900; font-size:20px}
+  .pm-sub{color:#9aa4b2; margin-top:4px}
+  .pm-close{appearance:none; border:none; background:transparent; color:#e6ecf2; font-size:24px; cursor:pointer}
+  .pm-list{margin:14px 0 16px; padding:0; list-style:none}
+  .pm-item{display:flex; align-items:center; gap:10px; padding:8px 0}
+  .pm-item svg{width:20px; height:20px; stroke:#31e1ff}
+  .pm-cta{display:block; width:100%; padding:14px 16px; border:none; border-radius:14px; cursor:pointer;
+          background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; font-weight:900; font-size:16px}
+  .pm-price{font-weight:900; color:#fff; font-size:18px; margin-top:8px}
 </style>
 </head>
 <body>
@@ -251,18 +285,34 @@
       <div id="menuPop" class="menu-pop">
         <button class="menu-item" id="miShare">Compartilhar</button>
         <button class="menu-item" id="miFav">Favoritar</button>
-        <button class="menu-item" id="miDown">Baixar (Premium)</button>
-        <button class="menu-item" id="miCreatePl">Criar playlist (Premium)</button>
-        <button class="menu-item" id="miSavePl">Salvar playlist (Premium)</button>
+        <button class="menu-item premium" id="miDown">Baixar (Premium)</button>
+        <button class="menu-item premium" id="miCreatePl">Criar playlist (Premium)</button>
+        <button class="menu-item premium" id="miSavePl">Salvar playlist (Premium)</button>
       </div>
     </div>
     <audio id="audio" crossorigin="anonymous"></audio>
   </footer>
 
+  <!-- POPUP PREMIUM (modal) -->
+  <div id="pmBack" class="pm-back"></div>
+  <div id="pmModal" class="pm-modal" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+    <div class="pm-top">
+      <div>
+        <div id="pmTitle" class="pm-title">Seja Premium</div>
+        <div class="pm-price">Apenas R$9,90 por mês</div>
+        <div class="pm-sub">Desbloqueie todos os recursos do Loove.</div>
+      </div>
+      <button id="pmClose" class="pm-close" aria-label="Fechar">×</button>
+    </div>
+    <ul class="pm-list" id="pmList"></ul>
+    <button id="pmCTA" class="pm-cta">Seja Premium</button>
+  </div>
+
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
   const PREMIUM_PREFIX = "PREMIUM/";
+  const PREMIUM_URL = "/assinatura"; // ajuste para a sua rota real
   const el = id => document.getElementById(id);
 
   /* ===== SVGs ===== */
@@ -287,6 +337,7 @@
   function icoDownload(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round"/><path d="M5 21h14" stroke-width="2" stroke-linecap="round"/></svg>`}
   function icoStar(){return `<svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17l-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" stroke-width="2" stroke-linejoin="round"/></svg>`}
   function icoCard(){return `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke-width="2"/><path d="M3 10h18" stroke-width="2"/></svg>`}
+  function icoDiamond(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 9 7 3h10l4 6-9 12L3 9Z" stroke-width="2" stroke-linejoin="round"/></svg>`}
 
   function setFlatIcons(){
     el("pHome").innerHTML = icoHome();
@@ -419,6 +470,8 @@
     currentPrefix = prefix || ""; nextToken = null; items = [];
     hide("viewHome"); hide("viewFavs"); show("viewList");
     el("list").innerHTML = "";
+    // Se for pasta premium, abre o popup
+    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ openPremiumModal(); }
     await loadMore();
   }
   async function loadMore(){
@@ -434,7 +487,7 @@
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
-  /* duração lazy — corrigido com crossOrigin */
+  /* duração lazy — com crossOrigin para evitar 'tracinhos' */
   const durationCache = new Map();
   const visObs = new IntersectionObserver((entries)=>{
     entries.forEach(en=>{
@@ -495,13 +548,14 @@
       menu.innerHTML = `
         <button class="menu-item miShare">Compartilhar</button>
         <button class="menu-item miFav">${isFav(m.key)?"Remover dos favoritos":"Favoritar"}</button>
-        <button class="menu-item">Baixar (Premium)</button>
-        <button class="menu-item">Criar Playlist (Premium)</button>
-        <button class="menu-item">Adicionar na Playlist (Premium)</button>
+        <button class="menu-item premium miDown">Baixar (Premium)</button>
+        <button class="menu-item premium miCreatePl">Criar Playlist (Premium)</button>
+        <button class="menu-item premium miAddPl">Adicionar na Playlist (Premium)</button>
       `;
       keb.onclick = (e)=>{ e.stopPropagation(); closeAllItemMenus(); menu.classList.toggle("open"); };
       document.addEventListener("click",(ev)=>{ if(!menu.contains(ev.target) && !keb.contains(ev.target)) menu.classList.remove("open"); });
 
+      // ações do menu
       menu.querySelector(".miShare").onclick = async ()=>{
         try{
           if(navigator.share){ await navigator.share({ title: formatTitle(m.name), text:"Ouça no Loove", url: location.href }); }
@@ -514,6 +568,10 @@
         like.classList.toggle("active");
         menu.classList.remove("open");
       };
+      // premium -> abre modal
+      menu.querySelectorAll(".premium").forEach(btn=>{
+        btn.addEventListener("click", ()=>{ menu.classList.remove("open"); openPremiumModal(); });
+      });
 
       right.appendChild(like);
       right.appendChild(keb);
@@ -591,9 +649,10 @@
 
   el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
   el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
-  el("miDown").onclick = ()=> alert("Recurso Premium.");
-  el("miCreatePl").onclick = ()=> alert("Recurso Premium.");
-  el("miSavePl").onclick = ()=> alert("Recurso Premium.");
+  // Premium no menu do player -> modal
+  el("miDown").onclick = openPremiumModal;
+  el("miCreatePl").onclick = openPremiumModal;
+  el("miSavePl").onclick = openPremiumModal;
 
   async function playKey(key,name){
     const d = await api("/api/stream?key="+encodeURIComponent(key));
@@ -621,7 +680,7 @@
       case "playlists": enterFolder(PREMIUM_PREFIX); break;
       case "downloads": alert("Downloads: em breve."); break;
       case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
-      case "billing": alert("Assinatura: em breve."); break;
+      case "billing": openPremiumModal(); break;
       case "settings": alert("Configurações: em breve."); break;
       case "notify": alert("Notificações: em breve."); break;
       case "help": alert("Ajuda: suporte@loove.app"); break;
@@ -643,6 +702,35 @@
       cont.appendChild(row);
     });
   }
+
+  /* ===== POPUP PREMIUM ===== */
+  const pmBack = el("pmBack");
+  const pmModal = el("pmModal");
+  const pmList = el("pmList");
+  const pmClose = el("pmClose");
+  const pmCTA = el("pmCTA");
+
+  function openPremiumModal(){
+    // popula lista com diamantes
+    const bens = ["Recursos Ilimitados","Baixe suas músicas","Escute Off-Line","Crie suas Playlists","Receba Brindes"];
+    pmList.innerHTML = "";
+    bens.forEach(txt=>{
+      const li = document.createElement("li");
+      li.className = "pm-item";
+      li.innerHTML = `${icoDiamond()} <span>${txt}</span>`;
+      pmList.appendChild(li);
+    });
+    pmBack.classList.add("open");
+    pmModal.classList.add("open");
+  }
+  function closePremiumModal(){
+    pmBack.classList.remove("open");
+    pmModal.classList.remove("open");
+  }
+  pmBack.addEventListener("click", closePremiumModal);
+  pmClose.addEventListener("click", closePremiumModal);
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") closePremiumModal(); });
+  pmCTA.addEventListener("click", ()=>{ location.href = PREMIUM_URL; });
 
   async function ensureAuthAndLoad(){
     await ensureAuth();
