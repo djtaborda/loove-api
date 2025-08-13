@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loove • Configurações</title>
+<style>
+  :root{
+    --bg:#0b0f14; --card:#121826; --line:#ffffff1f; --text:#e6ecf2; --muted:#9aa4b2;
+    --amber1:#ff9f1a; --amber2:#ff6a00; --ok:#29e36a; --red:#ff5a6b;
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f8fb; --card:#ffffff; --line:#00000014; --text:#111827; --muted:#4b5563;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--text);
+    background:
+      radial-gradient(900px 500px at 0% -10%, rgba(49,225,255,.06), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, rgba(255,47,179,.07), transparent 60%),
+      var(--bg);
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:18px 16px 80px}
+  .top{display:flex; align-items:center; gap:10px; margin-bottom:16px}
+  .btn{appearance:none; border:1px solid var(--line); background:#121b2b; color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer; text-decoration:none}
+  :root[data-theme="light"] .btn{background:#eef2ff; color:#111827}
+  .btn-primary{border:none; background:linear-gradient(180deg,var(--amber1),var(--amber2)); color:#0b0f14; box-shadow:0 10px 28px rgba(255,140,0,.35)}
+  .btn-danger{border:none; background:#7a0f1a}
+  .card{background:linear-gradient(180deg,var(--card),#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0}
+  :root[data-theme="light"] .card{background:#fff}
+  h2,h3{margin:6px 0 10px}
+  .grid{display:grid; grid-template-columns:1fr; gap:12px}
+  @media(min-width:840px){ .grid{grid-template-columns:1fr 1fr} }
+  label{font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.2px}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0}
+  input[type="text"],input[type="number"],select{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:#0d1320; color:#fff
+  }
+  :root[data-theme="light"] input,:root[data-theme="light"] select{background:#f8fafc; color:#111827}
+  .note{color:var(--muted); font-size:12px}
+  .range{width:100%}
+  .kv{display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums}
+  .pill{display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid var(--line)}
+  .section-title{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .small{font-size:12px}
+  .list{list-style:none; margin:0; padding:0}
+  .li{padding:10px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:10px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="btn" href="/">⟵ App</a>
+      <h2 style="margin:0">Configurações</h2>
+    </div>
+
+    <section class="grid">
+      <!-- Aparência -->
+      <div class="card">
+        <div class="section-title"><h3>Aparência</h3><span class="pill small" id="themeBadge">Dark</span></div>
+        <div class="row">
+          <label>Tema</label>
+          <select id="selTheme">
+            <option value="system">Sistema</option>
+            <option value="light">Claro</option>
+            <option value="dark">Escuro</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Tamanho da fonte</label>
+          <div class="kv" style="width:60%">
+            <input id="fontSize" class="range" type="range" min="90" max="120" step="5" value="100">
+            <span><span id="fontVal">100</span>%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reprodução -->
+      <div class="card">
+        <h3>Reprodução</h3>
+        <div class="li"><span>Reproduzir próxima automaticamente</span><input id="autonext" type="checkbox" checked></div>
+        <div class="li"><span>Embaralhar por padrão</span><input id="defShuffle" type="checkbox"></div>
+        <div class="li"><span>Normalizar volume</span><input id="normalize" type="checkbox"></div>
+        <div class="li">
+          <span>Cruzar faixas (crossfade)</span>
+          <div class="kv" style="width:50%"><input id="crossfade" class="range" type="range" min="0" max="10" step="1"><span><span id="crossVal">0</span>s</span></div>
+        </div>
+        <div class="li">
+          <span>Qualidade do streaming</span>
+          <select id="quality" style="min-width:160px">
+            <option value="auto">Automática</option>
+            <option value="high">Alta</option>
+            <option value="medium">Média</option>
+            <option value="low">Baixa</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Downloads -->
+      <div class="card">
+        <div class="section-title"><h3>Downloads</h3><a class="btn" href="/downloads.html">Abrir downloads</a></div>
+        <div class="li"><span>Permitir em rede móvel (4G/5G)</span><input id="dlMobile" type="checkbox"></div>
+        <div class="li"><span>Baixar apenas em Wi-Fi</span><input id="dlWifiOnly" type="checkbox"></div>
+        <div class="li">
+          <span>Limite de armazenamento (GB)</span>
+          <div class="kv" style="width:50%"><input id="dlLimit" class="range" type="range" min="1" max="20" step="1"><span><span id="limitVal">5</span>GB</span></div>
+        </div>
+        <div class="note" id="storageInfo">Calculando uso…</div>
+        <div class="row">
+          <button id="btnClearDownloads" class="btn">Limpar downloads</button>
+          <button id="btnClearCache" class="btn">Limpar cache</button>
+        </div>
+      </div>
+
+      <!-- Idioma & Região -->
+      <div class="card">
+        <h3>Idioma & Região</h3>
+        <div class="li"><span>Idioma</span>
+          <select id="lang">
+            <option value="pt-BR">Português (Brasil)</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+        <div class="li"><span>Formato de hora</span>
+          <select id="timefmt">
+            <option value="24">24h</option>
+            <option value="12">12h</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Privacidade -->
+      <div class="card">
+        <h3>Privacidade</h3>
+        <div class="li"><span>Personalizar recomendações</span><input id="personal" type="checkbox" checked></div>
+        <div class="li"><span>Coletar métricas anônimas</span><input id="metrics" type="checkbox" checked></div>
+        <div class="row">
+          <button id="btnExport" class="btn">Exportar meus dados (JSON)</button>
+          <button id="btnDelete" class="btn btn-danger">Excluir conta</button>
+        </div>
+        <div class="note">A exportação inclui preferências e listas salvas localmente.</div>
+      </div>
+
+      <!-- Dispositivos & Sessões -->
+      <div class="card">
+        <div class="section-title"><h3>Dispositivos</h3><span class="pill small" id="devCount">0 ativos</span></div>
+        <ul id="devList" class="list"></ul>
+        <div class="row">
+          <button id="btnAddDevice" class="btn">Registrar este dispositivo</button>
+          <button id="btnSignoutAll" class="btn">Sair de todos</button>
+        </div>
+      </div>
+
+      <!-- Reset -->
+      <div class="card">
+        <h3>Reset</h3>
+        <div class="row">
+          <button id="btnDefaults" class="btn">Restaurar padrões</button>
+          <a class="btn btn-primary" href="/notificacoes.html">Configurar notificações</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  // ======= State & helpers
+  const SETTINGS_KEY = "loove_settings_v2";
+  const DOWNLOADS_KEY = "loove_downloads_v1";
+  const DEVICES_KEY = "loove_devices_v1";
+  const TOKEN_KEY = "loove_token";
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    selTheme: $("selTheme"), themeBadge: $("themeBadge"), fontSize:$("fontSize"), fontVal:$("fontVal"),
+    autonext:$("autonext"), defShuffle:$("defShuffle"), normalize:$("normalize"),
+    crossfade:$("crossfade"), crossVal:$("crossVal"), quality:$("quality"),
+    dlMobile:$("dlMobile"), dlWifiOnly:$("dlWifiOnly"), dlLimit:$("dlLimit"), limitVal:$("limitVal"),
+    storageInfo:$("storageInfo"),
+    lang:$("lang"), timefmt:$("timefmt"),
+    personal:$("personal"), metrics:$("metrics"),
+    btnExport:$("btnExport"), btnDelete:$("btnDelete"),
+    devList:$("devList"), devCount:$("devCount"),
+    btnAddDevice:$("btnAddDevice"), btnSignoutAll:$("btnSignoutAll"),
+    btnClearDownloads:$("btnClearDownloads"), btnClearCache:$("btnClearCache"),
+    btnDefaults:$("btnDefaults")
+  };
+
+  function loadSettings(){
+    let s = {
+      theme: (localStorage.getItem("loove_theme") || "dark"),
+      fontPct: 100,
+      autonext:true, shuffle:false, normalize:true, crossfade:0, quality:"auto",
+      dlMobile:false, dlWifiOnly:true, dlLimit:5,
+      lang:"pt-BR", timefmt:"24",
+      personal:true, metrics:true
+    };
+    try{ s = {...s, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}")} }catch{}
+    return s;
+  }
+  function saveSettings(s){
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    localStorage.setItem("loove_theme", s.theme);
+  }
+
+  function applyTheme(theme){
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme==="system"
+      ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark":"light")
+      : theme);
+    els.themeBadge.textContent = root.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
+  }
+
+  async function updateStorageInfo(){
+    const downs = JSON.parse(localStorage.getItem(DOWNLOADS_KEY)||"[]");
+    let usageGB = 0;
+    downs.forEach(d => usageGB += (d.sizeBytes||0));
+    usageGB = (usageGB/1e9).toFixed(2);
+    try{
+      const est = await navigator.storage?.estimate?.() || {};
+      const used = ((est.usage||0)/1e9).toFixed(2);
+      const quota = ((est.quota||0)/1e9).toFixed(2);
+      els.storageInfo.textContent = `Downloads: ~${usageGB} GB • Armazenamento do navegador: ${used}/${quota} GB`;
+    }catch{
+      els.storageInfo.textContent = `Downloads: ~${usageGB} GB`;
+    }
+  }
+
+  function renderDevices(){
+    let list=[]; try{ list=JSON.parse(localStorage.getItem(DEVICES_KEY)||"[]"); }catch{}
+    els.devList.innerHTML = "";
+    els.devCount.textContent = `${list.length} ativos`;
+    if(!list.length){
+      const li=document.createElement("li"); li.className="li"; li.innerHTML = `<span class="note">Nenhum dispositivo registrado.</span>`;
+      els.devList.appendChild(li); return;
+    }
+    list.forEach(d=>{
+      const li=document.createElement("li"); li.className="li";
+      li.innerHTML = `<div><strong>${d.name}</strong><div class="note">${d.ua}</div></div>
+        <button class="btn" data-id="${d.id}">Remover</button>`;
+      els.devList.appendChild(li);
+    });
+    els.devList.querySelectorAll("[data-id]").forEach(b=>{
+      b.onclick=()=>{
+        let arr=JSON.parse(localStorage.getItem(DEVICES_KEY)||"[]");
+        arr = arr.filter(x=>x.id!==b.getAttribute("data-id"));
+        localStorage.setItem(DEVICES_KEY, JSON.stringify(arr));
+        renderDevices();
+      };
+    });
+  }
+
+  // ======= Bind UI <-> State
+  const S = loadSettings();
+
+  // initialize UI
+  els.selTheme.value = S.theme;
+  applyTheme(S.theme);
+  els.fontSize.value = S.fontPct; els.fontVal.textContent = S.fontPct;
+  els.autonext.checked = S.autonext;
+  els.defShuffle.checked = S.shuffle;
+  els.normalize.checked = S.normalize;
+  els.crossfade.value = S.crossfade; els.crossVal.textContent = S.crossfade;
+  els.quality.value = S.quality;
+  els.dlMobile.checked = S.dlMobile;
+  els.dlWifiOnly.checked = S.dlWifiOnly;
+  els.dlLimit.value = S.dlLimit; els.limitVal.textContent = S.dlLimit;
+  els.lang.value = S.lang;
+  els.timefmt.value = S.timefmt;
+  els.personal.checked = S.personal;
+  els.metrics.checked = S.metrics;
+
+  // listeners
+  els.selTheme.onchange = (e)=>{ S.theme=e.target.value; saveSettings(S); applyTheme(S.theme); };
+  els.fontSize.oninput = (e)=>{ S.fontPct=+e.target.value; els.fontVal.textContent=S.fontPct; saveSettings(S); document.documentElement.style.fontSize = S.fontPct+"%"; };
+  ["autonext","defShuffle","normalize"].forEach(k=> els[k].onchange = e=>{ S[k==="defShuffle"?"shuffle":k]=e.target.checked; saveSettings(S); });
+  els.crossfade.oninput = e=>{ S.crossfade=+e.target.value; els.crossVal.textContent=S.crossfade; saveSettings(S); };
+  els.quality.onchange = e=>{ S.quality=e.target.value; saveSettings(S); };
+  ["dlMobile","dlWifiOnly"].forEach(k=> els[k].onchange = e=>{ S[k]=e.target.checked; saveSettings(S); });
+  els.dlLimit.oninput = e=>{ S.dlLimit=+e.target.value; els.limitVal.textContent=S.dlLimit; saveSettings(S); };
+  els.lang.onchange = e=>{ S.lang=e.target.value; saveSettings(S); };
+  els.timefmt.onchange = e=>{ S.timefmt=e.target.value; saveSettings(S); };
+  els.personal.onchange = e=>{ S.personal=e.target.checked; saveSettings(S); };
+  els.metrics.onchange = e=>{ S.metrics=e.target.checked; saveSettings(S); };
+
+  // actions
+  $("btnClearDownloads").onclick = ()=>{
+    if(!confirm("Remover todos os downloads deste dispositivo?")) return;
+    localStorage.setItem(DOWNLOADS_KEY, "[]");
+    updateStorageInfo();
+    alert("Downloads removidos.");
+  };
+  $("btnClearCache").onclick = async ()=>{
+    try{
+      if('caches' in window){
+        const names = await caches.keys();
+        await Promise.all(names.map(n=>caches.delete(n)));
+      }
+      alert("Cache limpo.");
+    }catch{ alert("Não foi possível limpar o cache."); }
+  };
+  $("btnExport").onclick = ()=>{
+    // Coleta dados locais principais
+    const blob = new Blob([JSON.stringify({
+      settings:S,
+      downloads: JSON.parse(localStorage.getItem(DOWNLOADS_KEY)||"[]"),
+      devices: JSON.parse(localStorage.getItem(DEVICES_KEY)||"[]"),
+      favorites: JSON.parse(localStorage.getItem("loove_favs_v1")||"[]"),
+      playlists: JSON.parse(localStorage.getItem("loove_user_playlists_v1")||"[]"),
+      usage: JSON.parse(localStorage.getItem("loove_usage_stats")||"{}")
+    }, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download="meus_dados_loove.json"; a.click();
+    URL.revokeObjectURL(url);
+  };
+  $("btnDelete").onclick = ()=>{
+    if(!confirm("Tem certeza? Isso encerra sua sessão neste dispositivo.")) return;
+    localStorage.removeItem(TOKEN_KEY);
+    alert("Sessão encerrada. Você pode fazer login novamente quando quiser.");
+    location.href="/";
+  };
+  $("btnAddDevice").onclick = ()=>{
+    const cur = { id: crypto.randomUUID(), name: (prompt("Nome para este dispositivo:","Meu celular")||"Dispositivo"), ua: navigator.userAgent, addedAt: new Date().toISOString() };
+    let arr=[]; try{ arr=JSON.parse(localStorage.getItem(DEVICES_KEY)||"[]"); }catch{}
+    arr.push(cur); localStorage.setItem(DEVICES_KEY, JSON.stringify(arr)); renderDevices();
+  };
+  $("btnSignoutAll").onclick = ()=>{
+    if(!confirm("Sair de todos os dispositivos?")) return;
+    localStorage.removeItem(TOKEN_KEY);
+    // Em backend real: chamar /api/logout-all
+    alert("Sessões encerradas. Faça login novamente.");
+    location.href="/";
+  };
+  $("btnDefaults").onclick = ()=>{
+    if(!confirm("Restaurar todos os padrões?")) return;
+    localStorage.removeItem(SETTINGS_KEY);
+    location.reload();
+  };
+
+  // init
+  document.documentElement.style.fontSize = (S.fontPct||100)+"%";
+  updateStorageInfo();
+  renderDevices();
+
+  // aplica tema salvo ao carregar
+  (function initTheme(){
+    const t = localStorage.getItem("loove_theme") || S.theme || "dark";
+    document.documentElement.setAttribute("data-theme", t==="system"
+      ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark":"light")
+      : t);
+    els.themeBadge.textContent = document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
+  })();
+</script>
+</body>
+</html>
