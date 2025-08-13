@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loove • Meus Downloads</title>
+<style>
+  :root{ --bg:#0b0f14; --card:#121826; --line:#ffffff14; --text:#e6ecf2; --muted:#9aa4b2; }
+  *{box-sizing:border-box}
+  body{ margin:0; color:var(--text); background:var(--bg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif }
+  .wrap{max-width:980px; margin:0 auto; padding:18px 16px 60px}
+  .btn{appearance:none; border:1px solid var(--line); background:#121b2b; color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer; text-decoration:none}
+  .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0}
+  .list{list-style:none; margin:0; padding:0}
+  .li{padding:12px 10px; border:1px solid var(--line); border-radius:12px; margin:8px 0; display:flex; align-items:center; justify-content:space-between; background:#0e1522}
+  .note{color:var(--muted); font-size:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="btn" href="/">⟵ Voltar</a>
+    <section class="card">
+      <h3>Disponíveis Off-Line</h3>
+      <ul id="downList" class="list"></ul>
+      <div id="empty" class="note">Nenhuma música baixada ainda.</div>
+    </section>
+  </div>
+
+<script>
+  const KEY="loove_downloads_v1"; // cada item: {key, name, url?}
+  const el=id=>document.getElementById(id);
+  function list(){ try{return JSON.parse(localStorage.getItem(KEY)||"[]");}catch{return[];} }
+  function render(){
+    const arr=list(); el("empty").style.display=arr.length?"none":"";
+    const UL=el("downList"); UL.innerHTML="";
+    arr.forEach(m=>{
+      const li=document.createElement("li"); li.className="li";
+      li.innerHTML=`<div><strong>${m.name||m.key.split('/').pop()}</strong><div class="note">${m.key}</div></div>
+        <div style="display:flex; gap:8px">
+          <a class="btn" href="/">Reproduzir</a>
+          <button class="btn" data-del="${m.key}">Remover</button>
+        </div>`;
+      UL.appendChild(li);
+    });
+    UL.querySelectorAll("[data-del]").forEach(b=> b.onclick=()=>{ const k=b.getAttribute("data-del"); const arr=list().filter(x=>x.key!==k); localStorage.setItem(KEY, JSON.stringify(arr)); render(); });
+  }
+  render();
+</script>
+</body>
+</html>
