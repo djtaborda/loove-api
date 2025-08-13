@@ -621,15 +621,15 @@
     closeMenu();
     switch(act){
       case "home": enterFolder(""); break;
-      case "account": alert("Conta: em breve."); break;
+      case "account": location.href = "/conta.html"; break;           // ALTERADO
       case "search": el("q").focus(); break;
-      case "playlists": enterFolder(PREMIUM_PREFIX); break;    // vai redirecionar
-      case "downloads": alert("Downloads: em breve."); break;
+      case "playlists": location.href = "/playlists.html"; break;     // ALTERADO
+      case "downloads": location.href = "/downloads.html"; break;     // ALTERADO
       case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
       case "billing": goPremium(); break;
       case "settings": alert("Configurações: em breve."); break;
       case "notify": alert("Notificações: em breve."); break;
-      case "help": alert("Ajuda: suporte@loove.app"); break;
+      case "help": location.href = "/ajuda.html"; break;              // ALTERADO
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
@@ -660,6 +660,25 @@
   }
   ensureAuthAndLoad();
   async function boot(){ await ensureAuthAndLoad(); }
+
+  /* ===== Estatística de uso local (Admin demo) ===== */
+  (function trackUsage(){
+    const KEY="loove_usage_stats";
+    let start=Date.now();
+    function save(){
+      const sec=(Date.now()-start)/1000;
+      const d=new Date().toISOString().slice(0,10);
+      let st={firstAt:d, secondsTotal:0, days:0, byDay:{}};
+      try{ st=Object.assign(st, JSON.parse(localStorage.getItem(KEY)||"{}")); }catch{}
+      st.secondsTotal = (st.secondsTotal||0) + sec;
+      st.byDay[d] = (st.byDay?.[d]||0) + sec;
+      st.days = Object.keys(st.byDay||{}).length;
+      localStorage.setItem(KEY, JSON.stringify(st));
+      start=Date.now();
+    }
+    window.addEventListener("beforeunload", save);
+    setInterval(save, 30000);
+  })();
 </script>
 </body>
 </html>
