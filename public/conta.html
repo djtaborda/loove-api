@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loove • Minha Conta</title>
+<style>
+  :root{
+    --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
+    --amber1:#ff9f1a; --amber2:#ff6a00; --line:#ffffff14; --ok:#29e36a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--text);
+    background: radial-gradient(900px 500px at 0% -10%, rgba(49,225,255,.06), transparent 60%),
+                radial-gradient(900px 500px at 100% 10%, rgba(255,47,179,.07), transparent 60%),
+                var(--bg);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:18px 16px 60px}
+  .top{display:flex; align-items:center; gap:10px; margin-bottom:16px}
+  .logo{height:34px}
+  .title{font-weight:900; font-size:22px; margin-left:auto}
+  .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0}
+  .row{display:grid; grid-template-columns:1fr; gap:12px}
+  @media(min-width:760px){ .row{grid-template-columns:1fr 1fr} }
+  label{font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.2px}
+  input, .chips, select{
+    width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--line);
+    background:#0d1320; color:var(--text); font-size:15px;
+  }
+  input[readonly]{opacity:.75; cursor:not-allowed}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; background:transparent; padding:0; border:none}
+  .chip{padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:#0e1522; color:#cfe3ff; cursor:pointer; font-weight:800}
+  .chip.active{background:linear-gradient(180deg,var(--amber1),var(--amber2)); color:#0b0f14; border:none}
+  .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+  .btn{appearance:none; border:1px solid var(--line); background:#121b2b; color:#fff; padding:12px 16px; border-radius:12px; font-weight:800; cursor:pointer}
+  .btn-primary{border:none; background:linear-gradient(180deg,var(--amber1),var(--amber2)); color:#0b0f14; box-shadow:0 10px 28px rgba(255,140,0,.35)}
+  .link{color:#fff; text-decoration:none; font-weight:800}
+  .list{list-style:none; margin:0; padding:0}
+  .li{padding:12px 10px; border:1px solid var(--line); border-radius:12px; margin:8px 0; display:flex; justify-content:space-between; align-items:center; background:#0e1522}
+  .switch{display:flex; align-items:center; gap:10px}
+  .note{font-size:12px; color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a href="/" class="link">⟵ Voltar</a>
+      <img class="logo" src="/loove-logo.png" alt="Loove">
+      <div class="title">Minha conta</div>
+    </div>
+
+    <!-- Perfil -->
+    <section class="card">
+      <h3>Dados do Perfil</h3>
+      <div class="row">
+        <div>
+          <label>Nome</label>
+          <input id="inName" type="text" placeholder="Seu nome">
+        </div>
+        <div>
+          <label>E-mail de cadastro (não editável)</label>
+          <input id="inEmail" type="email" readonly>
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input id="inPhone" type="tel" placeholder="(xx) xxxxx-xxxx">
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnSaveProfile" class="btn btn-primary">Salvar</button>
+        <a class="btn" href="/assinaturas.html">Sua Assinatura</a>
+        <a class="btn" href="/downloads.html">Downloads</a>
+      </div>
+      <div id="msg" class="note"></div>
+    </section>
+
+    <!-- Preferências -->
+    <section class="card">
+      <h3>Preferências musicais</h3>
+      <div class="chips" id="chips"></div>
+      <div class="note">Selecione os estilos que você mais gosta — usamos isso para destacar conteúdos pra você.</div>
+    </section>
+
+    <!-- Atalhos -->
+    <section class="card">
+      <h3>Atalhos</h3>
+      <ul class="list">
+        <li class="li"><span>Minhas Playlists</span> <a class="btn" href="/playlists.html">Abrir</a></li>
+        <li class="li"><span>Notificações</span> 
+          <span class="switch">
+            <label for="swPush" class="note">Receber novidades</label>
+            <input id="swPush" type="checkbox">
+          </span>
+        </li>
+        <li class="li"><span>Meio de Pagamento</span> <button id="btnPg" class="btn">Editar</button></li>
+        <li class="li"><span>Ajuda e Suporte</span> <a class="btn" href="/ajuda.html">Abrir</a></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Dados do pagamento</h3>
+      <div class="row">
+        <div>
+          <label>Bandeira</label>
+          <input id="pgBrand" type="text" placeholder="Ex.: Visa" />
+        </div>
+        <div>
+          <label>Final</label>
+          <input id="pgLast4" type="text" maxlength="4" placeholder="1234" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnSavePg" class="btn btn-primary">Salvar meio de pagamento</button>
+        <a class="btn" href="/assinaturas.html">Trocar de plano</a>
+      </div>
+      <div id="msgPg" class="note"></div>
+    </section>
+  </div>
+
+<script>
+  const TOKEN_KEY="loove_token";
+  const PROFILE_KEY="loove_profile_v1";
+  const PREFS_KEY="loove_prefs_tags_v1";
+  const PAY_KEY="loove_payment_v1";
+  const NOTIF_KEY="loove_notify_prefs_v1";
+  const GENRES=["Dance","Pop","Funk","Sertanejo","Eletrônica","Flashback","Rock","Gospel","Hip-Hop","Reggaeton"];
+
+  const el=id=>document.getElementById(id);
+  const chips=el("chips");
+
+  // Render chips
+  function renderChips(selected=[]){
+    chips.innerHTML="";
+    GENRES.forEach(g=>{
+      const b=document.createElement("button");
+      b.type="button";
+      b.className="chip"+(selected.includes(g)?" active":"");
+      b.textContent=g;
+      b.onclick=()=>{ b.classList.toggle("active"); };
+      chips.appendChild(b);
+    });
+  }
+
+  // Load profile (API fallback localStorage)
+  async function loadProfile(){
+    let prof=null;
+    try{
+      const r=await fetch("/api/me",{headers: localStorage.getItem(TOKEN_KEY)?{Authorization:"Bearer "+localStorage.getItem(TOKEN_KEY)}:{}});
+      if(r.ok){ const d=await r.json(); prof={
+        name:d?.user?.name||"", email:d?.user?.email||"", phone:d?.user?.phone||""
+      }; }
+    }catch{}
+    if(!prof){ try{ prof=JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}"); }catch{ prof={}; } }
+    el("inName").value = prof?.name||"";
+    el("inEmail").value = prof?.email||"";
+    el("inPhone").value = prof?.phone||"";
+  }
+
+  async function saveProfile(){
+    const body={ name:el("inName").value.trim(), phone:el("inPhone").value.trim() };
+    el("msg").textContent="Salvando...";
+    try{
+      const r=await fetch("/api/me",{method:"POST",headers:{
+        "Content-Type":"application/json",
+        ...(localStorage.getItem(TOKEN_KEY)?{Authorization:"Bearer "+localStorage.getItem(TOKEN_KEY)}:{})
+      },body:JSON.stringify(body)});
+      if(!r.ok) throw 0;
+      el("msg").textContent="Dados atualizados!";
+    }catch{
+      // fallback local
+      const stored=JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}");
+      stored.name=body.name; stored.phone=body.phone;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(stored));
+      el("msg").textContent="Dados salvos no dispositivo.";
+    }
+  }
+
+  function savePrefs(){
+    const sel=[...chips.querySelectorAll(".chip.active")].map(x=>x.textContent);
+    localStorage.setItem(PREFS_KEY, JSON.stringify(sel));
+  }
+
+  function loadPrefs(){
+    let sel=[];
+    try{ sel=JSON.parse(localStorage.getItem(PREFS_KEY)||"[]"); }catch{}
+    renderChips(sel);
+  }
+
+  function loadNotify(){
+    const v=localStorage.getItem(NOTIF_KEY)==="1";
+    el("swPush").checked=v;
+  }
+  function saveNotify(){
+    localStorage.setItem(NOTIF_KEY, el("swPush").checked?"1":"0");
+  }
+
+  function loadPayment(){
+    let p={}; try{ p=JSON.parse(localStorage.getItem(PAY_KEY)||"{}"); }catch{}
+    el("pgBrand").value=p.brand||"";
+    el("pgLast4").value=p.last4||"";
+  }
+  function savePayment(){
+    const brand=el("pgBrand").value.trim(); const last4=el("pgLast4").value.trim().slice(-4);
+    localStorage.setItem(PAY_KEY, JSON.stringify({brand,last4}));
+    el("msgPg").textContent="Meio de pagamento salvo.";
+  }
+
+  document.addEventListener("change",(e)=>{
+    if(e.target.closest(".chips")) savePrefs();
+    if(e.target.id==="swPush") saveNotify();
+  });
+  document.getElementById("btnSaveProfile").onclick=saveProfile;
+  document.getElementById("btnSavePg").onclick=savePayment;
+
+  // init
+  loadProfile(); loadPrefs(); loadNotify(); loadPayment();
+</script>
+</body>
+</html>
