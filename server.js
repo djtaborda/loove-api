@@ -9,6 +9,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+// ===== Correção definitiva: Anti-cache só na API =====
+// (evita respostas 304 e impede o navegador de reutilizar dados antigos)
+app.use('/api', (req, res, next) => {
+  // Remover cabeçalhos condicionais que permitem 304
+  if (req.headers['if-none-match']) delete req.headers['if-none-match'];
+  if (req.headers['if-modified-since']) delete req.headers['if-modified-since'];
+
+  // Forçar não-caching no cliente e em proxies/CDNs
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+
+  // Garantir que não haverá validação por ETag nesta resposta
+  if (typeof res.removeHeader === 'function') {
+    res.removeHeader('ETag');
+  }
+
+  next();
+});
 const PORT = process.env.PORT || 3000;
 
 /* ---------- middlewares opcionais (carregados só se existirem) ---------- */
