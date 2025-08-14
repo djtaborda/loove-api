@@ -441,37 +441,58 @@
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
-  /* duração lazy (corrigido) */
+  /* ===== DURAÇÃO: fila com concorrência limitada ===== */
   const durationCache = new Map();
-  const visObs = new IntersectionObserver((entries)=>{
-    entries.forEach(en=>{
-      if(!en.isIntersecting) return;
-      const row = en.target; visObs.unobserve(row);
-      const key = row.getAttribute("data-key");
-      const span = row.querySelector(".t-sub .dur");
-      if(!key || !span) return;
-      fetchDurationLazy(key, span);
-    });
-  }, { root: null, threshold: .1 });
+  const DUR_MAX = 2;           // quantos cálculos simultâneos no máx.
+  let durInFlight = 0;
+  const durQueue = [];
 
-  async function fetchDurationLazy(key, span){
-    if(durationCache.has(key)){ span.textContent = fmt(durationCache.get(key)); return; }
-    span.textContent = "—:—";
+  const durObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if (!en.isIntersecting) return;
+      const li = en.target;
+      durObserver.unobserve(li);
+      const key = li.dataset.key;
+      const span = li.querySelector('.t-sub .dur');
+      if (key && span) enqueueDuration(key, span);
+    });
+  },{root:null, rootMargin:'200px 0px', threshold:0});
+
+  function enqueueDuration(key, span){
+    if (durationCache.has(key)) {
+      span.textContent = fmt(durationCache.get(key));
+      return;
+    }
+    span.textContent = '—:—';
+    durQueue.push({key, span});
+    pumpDurQueue();
+  }
+
+  async function pumpDurQueue(){
+    if (durInFlight >= DUR_MAX || !durQueue.length) return;
+    durInFlight++;
+    const {key, span} = durQueue.shift();
     try{
-      const d = await api("/api/stream?key="+encodeURIComponent(key));
+      const d = await api('/api/stream?key='+encodeURIComponent(key));
       const a = new Audio();
-      a.preload = "metadata";
-      a.crossOrigin = "anonymous";
+      a.crossOrigin = 'anonymous';
+      a.preload = 'metadata';
       a.src = d.url;
-      a.addEventListener("loadedmetadata", ()=>{
-        const sec = a.duration || 0;
-        durationCache.set(key, sec);
-        span.textContent = fmt(sec);
-        a.src = "";
-      }, { once:true });
-      a.addEventListener("error", ()=>{ span.textContent="--:--"; }, { once:true });
-      a.load();
-    }catch{ span.textContent="--:--"; }
+
+      await new Promise((res)=>{
+        const done = ()=>{ a.src=''; res(); };
+        a.addEventListener('loadedmetadata', ()=>{
+          const sec = isFinite(a.duration) ? a.duration : 0;
+          if (sec) durationCache.set(key, sec);
+          span.textContent = sec ? fmt(sec) : '--:--';
+          done();
+        }, {once:true});
+        a.addEventListener('error', ()=>{ span.textContent='--:--'; done(); }, {once:true});
+      });
+    } finally {
+      durInFlight--;
+      pumpDurQueue();     // dispara o próximo
+    }
   }
 
   /* ===== renderização da lista ===== */
@@ -532,7 +553,7 @@
       LI.appendChild(menu);
       UL.appendChild(LI);
 
-      visObs.observe(LI);
+      durObserver.observe(LI);
     });
   }
 
@@ -559,6 +580,9 @@
   const pPlay = el("pPlay"); const pPrev = el("pPrev"); const pNext = el("pNext"); const pHome = el("pHome"); const pSearch = el("pSearch");
   const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
+
+  // Pré-carrega para começar mais rápido
+  audio.preload = 'auto';
 
   let currentKey = null, currentName = null, shuffleOn=false, repeatOn=false;
 
@@ -679,6 +703,9 @@
     window.addEventListener("beforeunload", save);
     setInterval(save, 30000);
   })();
+
+  /* ===== Mantém a API “acordada” enquanto o app estiver aberto ===== */
+  setInterval(()=>{ fetch('/api/health').catch(()=>{}); }, 4*60*1000);
 </script>
 </body>
 </html>
