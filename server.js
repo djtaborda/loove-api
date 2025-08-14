@@ -1,28 +1,31 @@
-// server.js — mínimo, sem dependências obrigatórias além de express (CommonJS)
+// server.js (ESM) — mínimo e compatível com "type":"module"
 
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
+import express from "express";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// Use SEMPRE a porta do Render (não defina PORT manualmente no painel).
 const PORT = process.env.PORT || 3000;
 
-// ---------- middlewares opcionais (se existirem) ----------
-function tryRequire(name, fallback) {
-  try { return require(name); } catch { return fallback; }
+/* ---------- middlewares opcionais (carregados só se existirem) ---------- */
+async function maybeImport(name) {
+  try { return await import(name); } catch { return null; }
 }
 
-const morgan = tryRequire("morgan", () => (req, res, next) => next());
-const corsLib = tryRequire("cors", () => () => (req, res, next) => next());
+const morgan = await maybeImport("morgan");
+const corsMod = await maybeImport("cors");
 
-app.use(morgan("tiny"));
-app.use(corsLib());
+if (morgan?.default) app.use(morgan.default("tiny"));
+if (corsMod?.default) app.use(corsMod.default());
+
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ---------- HEALTH FIRST (antes de static/catch-all) ----------
+/* ---------- HEALTH (antes de static/catch-all) ---------- */
 app.get("/health", (_req, res) => {
   res.status(200).json({
     ok: true,
@@ -32,39 +35,45 @@ app.get("/health", (_req, res) => {
     uptime: process.uptime(),
   });
 });
-
-// Alias opcional
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-// ---------- SUAS ROTAS DA API ----------
-(function mountApi() {
-  // Tenta ./routes (CommonJS) ou ./routes/index.js (default export)
-  try {
-    const api = require("./routes");
-    if (typeof api === "function") app.use("/api", api);
-    else if (api && typeof api.default === "function") app.use("/api", api.default);
-  } catch {
+/* ---------- SUAS ROTAS DA API ---------- */
+async function mountApi() {
+  // Tenta ./routes/index.(js|cjs) e ./routes.(js|cjs)
+  const candidates = [
+    path.join(__dirname, "routes", "index.js"),
+    path.join(__dirname, "routes", "index.cjs"),
+    path.join(__dirname, "routes.js"),
+    path.join(__dirname, "routes.cjs"),
+  ];
+
+  for (const abs of candidates) {
     try {
-      const api2 = require("./routes/index");
-      if (typeof api2 === "function") app.use("/api", api2);
-      else if (api2 && typeof api2.default === "function") app.use("/api", api2.default);
+      if (!fs.existsSync(abs)) continue;
+      const mod = await import(pathToFileURL(abs).href);
+      const router = mod.default ?? mod.router ?? mod;
+      if (typeof router === "function") {
+        app.use("/api", router);
+        return;
+      }
     } catch {
-      console.warn("[WARN] ./routes não encontrado — seguindo sem API custom.");
+      // tenta o próximo
     }
   }
-})();
+  console.warn("[WARN] ./routes não encontrado — seguindo sem API custom.");
+}
+await mountApi();
 
-// ---------- STATIC (SPA) + CATCH-ALL ----------
+/* ---------- STATIC (SPA) + CATCH-ALL ---------- */
 const pubDir = path.join(__dirname, "public");
 if (fs.existsSync(pubDir)) {
   app.use(express.static(pubDir));
   app.get("*", (_req, res) => res.sendFile(path.join(pubDir, "index.html")));
 } else {
-  // fallback simples se não houver /public
   app.get("*", (_req, res) => res.status(200).send("Loove API online"));
 }
 
-// ---------- START ----------
+/* ---------- START ---------- */
 app.listen(PORT, () => {
   console.log(`✅ Server up on ${PORT}`);
 });
