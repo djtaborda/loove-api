@@ -1,283 +1,279 @@
-// server.js  —  Loove API (ESM)  ✅
-// -----------------------------------------------------------------------------
-// Ambiente esperado (Render -> Variables):
-// S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET
-// (opcional) APP_PIN  -> PIN de login (padrão 2468)
-// -----------------------------------------------------------------------------
-// Este servidor:
-// - Serve o front da pasta /public (index.html, assinaturas.html etc.)
-// - API sem cache (apenas /api/*) e sem ETag
-// - /health, /api/me, /api/login
-// - /api/folders  (robusto para raiz/subpastas em Wasabi/S3)
-// - /api/list     (arquivos imediatos de uma pasta)
-// - /api/search   (busca simples dentro do prefix informado)
-// - /api/stream   (presigned URL para tocar/baixar)
-// -----------------------------------------------------------------------------
+// server.js — Loove API (ESM) — suporta S3_* e WASABI_*
+// Requisitos no package.json: "type":"module"
+// Dependências: express, compression, cors, jsonwebtoken, cookie-parser,
+// @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, uuid
 
 import express from "express";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import {
-  S3Client,
-  ListObjectsV2Command,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
+import http from "http";
+import compression from "compression";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
+import { S3Client, ListObjectsV2Command, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { v4 as uuidv4 } from "uuid";
 
-// ---------- Paths util (ESM)
+// ========= Infra básico =========
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---------- Config
-const PORT = process.env.PORT || 10000;
+const app = express();
+app.disable("x-powered-by");
 
-const S3_ENDPOINT = process.env.S3_ENDPOINT || "";
-const S3_REGION = process.env.S3_REGION || "us-east-1";
-const S3_KEY = process.env.S3_ACCESS_KEY_ID || "";
-const S3_SECRET = process.env.S3_SECRET_ACCESS_KEY || "";
-const BUCKET = process.env.S3_BUCKET || process.env.BUCKET || "";
-const APP_PIN = process.env.APP_PIN || "2468";
+// Desliga ETag globalmente (evita 304 teimoso em proxies)
+app.set("etag", false);
 
-if (!BUCKET) {
-  console.warn("[WARN] S3_BUCKET não definido — a API de arquivos não funcionará.");
-}
+// Middlewares padrão
+app.use(compression());
+app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
+app.use(cors({ origin: true, credentials: true }));
 
-// ---------- S3 Client
+// ========= Leitura de variáveis (aceita S3_* e WASABI_*) =========
+const ENV = (k, def = undefined) =>
+  process.env[k] ?? process.env[k.replace(/^S3_/, "WASABI_")] ?? def;
+
+const ACCESS_PIN = process.env.ACCESS_PIN || "2468";
+const JWT_SECRET = process.env.JWT_SECRET || "loove-secret";
+const DEV_OPEN = (process.env.DEV_OPEN || "").toLowerCase() === "true";
+
+const S3_ENDPOINT = ENV("S3_ENDPOINT", "https://s3.us-east-1.wasabisys.com");
+const S3_REGION = ENV("S3_REGION", "us-east-1");
+const S3_ACCESS_KEY_ID = ENV("S3_ACCESS_KEY_ID");
+const S3_SECRET_ACCESS_KEY = ENV("S3_SECRET_ACCESS_KEY");
+const S3_BUCKET = ENV("S3_BUCKET");
+
+// Validação leve (loga, mas não derruba)
+if (!S3_BUCKET) console.warn("[WARN] Bucket não definido (S3_BUCKET/WASABI_BUCKET). A listagem não funcionará.");
+if (!S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY)
+  console.warn("[WARN] Credenciais não definidas (S3_ACCESS_KEY_ID/WASABI_ACCESS_KEY_ID).");
+
+// Cliente S3 (Wasabi compatível)
 const s3 = new S3Client({
   region: S3_REGION,
-  endpoint: S3_ENDPOINT || undefined,
-  forcePathStyle: true, // bom para Wasabi/minio
-  credentials: S3_KEY && S3_SECRET ? { accessKeyId: S3_KEY, secretAccessKey: S3_SECRET } : undefined,
+  endpoint: S3_ENDPOINT,
+  forcePathStyle: true, // importante para Wasabi
+  credentials: S3_ACCESS_KEY_ID && S3_SECRET_ACCESS_KEY ? {
+    accessKeyId: S3_ACCESS_KEY_ID,
+    secretAccessKey: S3_SECRET_ACCESS_KEY
+  } : undefined
 });
 
-// ---------- App
-const app = express();
-
-app.disable("x-powered-by");
-app.disable("etag"); // desliga ETag global (evita 304 teimoso)
-
-app.use(express.json({ limit: "1mb" }));
-
-// CORS simples (libera seu app web e players externos, se precisar)
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
-
-// 🔒 API SEM CACHE (somente /api/*) — pedido por você
-app.use("/api", (req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+// ========= Anti-cache SÓ para /api/* =========
+app.use(/^\/api\//, (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
   res.removeHeader("ETag");
   next();
 });
 
-// ---------- Health
+// ========= Auth simples (PIN → JWT) =========
+function signToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+function auth(req, res, next) {
+  const h = req.headers.authorization || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "missing token" });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: "invalid token" });
+  }
+}
+
+// ========= Rotas públicas básicas =========
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
     service: "loove-api",
     ts: new Date().toISOString(),
     node: process.version,
-    uptime: process.uptime(),
+    uptime: process.uptime()
   });
 });
 
-// ---------- Auth minimalista (compatível com seu front)
-app.get("/api/me", (req, res) => {
-  const auth = req.headers.authorization || "";
-  if (!auth) return res.status(401).json({ error: "NO_TOKEN" });
-  // não validamos JWT aqui – basta existir para o app logar
-  res.json({ ok: true, user: { id: "user", plan: "free" } });
+app.post("/api/login", (req, res) => {
+  const { pin } = req.body || {};
+  if (!pin) return res.status(400).json({ error: "pin required" });
+  if (DEV_OPEN || String(pin) === String(ACCESS_PIN)) {
+    return res.json({ token: signToken({ sub: "loove", iat: Math.floor(Date.now() / 1000) }) });
+  }
+  return res.status(401).json({ error: "invalid pin" });
 });
 
-app.post("/api/login", (req, res) => {
+app.get("/api/me", (req, res) => {
+  const h = req.headers.authorization || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7) : null;
+  if (!token) return res.status(200).json({ auth: false });
   try {
-    const pin = String(req.body?.pin || "");
-    if (!pin) return res.status(400).json({ error: "PIN_REQUIRED" });
-    if (pin !== APP_PIN) return res.status(401).json({ error: "PIN_INVALID" });
-
-    // token simples (sem dependências) – o app só precisa de um valor
-    const token = Buffer.from(`ok:${Date.now()}`).toString("base64");
-    res.json({ token });
-  } catch (e) {
-    res.status(500).json({ error: "LOGIN_ERROR" });
+    const data = jwt.verify(token, JWT_SECRET);
+    return res.json({ auth: true, user: { id: data.sub || "loove" } });
+  } catch {
+    return res.json({ auth: false });
   }
 });
 
-// ---------- Helpers S3
-const ensureSlashEnd = (p = "") => (p && !p.endsWith("/") ? p + "/" : p);
-const isDirKey = (k) => k.endsWith("/");
+// ========= Funções S3 =========
+async function listPrefixes(prefix = "") {
+  if (!S3_BUCKET) throw new Error("bucket-not-configured");
+  const cmd = new ListObjectsV2Command({
+    Bucket: S3_BUCKET,
+    Prefix: prefix,
+    Delimiter: "/",
+    MaxKeys: 1000
+  });
+  const out = await s3.send(cmd);
+  const folders = (out.CommonPrefixes || []).map(cp => {
+    const p = cp.Prefix || "";
+    const name = p.replace(prefix, "").replace(/\/$/, "");
+    return { prefix: p, name };
+  });
+  return folders;
+}
 
-// /api/folders — lista pastas de primeiro nível do prefixo
+function isAudioKey(key = "") {
+  return /\.(mp3|m4a|aac|wav|flac|ogg)$/i.test(key);
+}
+
+async function listObjects(prefix = "", token = null) {
+  if (!S3_BUCKET) throw new Error("bucket-not-configured");
+  const cmd = new ListObjectsV2Command({
+    Bucket: S3_BUCKET,
+    Prefix: prefix,
+    ContinuationToken: token || undefined,
+    MaxKeys: 1000
+  });
+  const out = await s3.send(cmd);
+  const items = (out.Contents || [])
+    .filter(o => isAudioKey(o.Key || ""))
+    .map(o => ({ key: o.Key, name: path.basename(o.Key) }));
+  return {
+    items,
+    nextToken: out.IsTruncated ? out.NextContinuationToken || null : null
+  };
+}
+
+async function searchObjects(q = "", prefix = "", limit = 200) {
+  // Implementação simples: varre páginas até achar "limit" itens
+  let token = null;
+  const found = [];
+  const qNorm = q.trim().toLowerCase();
+  for (let i = 0; i < 20 && found.length < limit; i++) {
+    const page = await listObjects(prefix, token);
+    for (const it of page.items) {
+      if (found.length >= limit) break;
+      if (it.name.toLowerCase().includes(qNorm)) found.push(it);
+    }
+    if (!page.nextToken) break;
+    token = page.nextToken;
+  }
+  return found;
+}
+
+async function presign(key) {
+  if (!S3_BUCKET) throw new Error("bucket-not-configured");
+  // Valida se objeto existe (metadados)
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+  } catch (e) {
+    // Se Head falhar por permissão, ainda tentamos presign
+    // console.warn("HeadObject falhou, tentando presign mesmo assim:", e?.name || e);
+  }
+  const url = await getSignedUrl(
+    s3,
+    new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }), // truque para URL base
+    { expiresIn: 60 } // 60s
+  );
+  // O getSignedUrl com Head gera URL válida; para download do objeto, troca o método:
+  // Trabalho garantido: usa GET com getSignedUrl + RequestPresigner? Simples: refaz:
+  const { request } = await import("@aws-sdk/s3-request-presigner");
+  // Para simplificar e evitar custo adicional aqui, vamos fazer do jeito clássico:
+  // O presigner com GetObject é o correto:
+  const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const dl = await getSignedUrl(
+    s3,
+    new GetObjectCommand({ Bucket: S3_BUCKET, Key: key }),
+    { expiresIn: 60 }
+  );
+  return dl;
+}
+
+// ========= Endpoints de dados =========
 app.get("/api/folders", async (req, res) => {
   try {
-    const raw = (req.query.prefix || "").trim();
-    const base = ensureSlashEnd(raw);
-    const token = req.query.token || undefined;
-
-    // 1) tentativa com Delimiter "/"
-    let out = await s3.send(
-      new ListObjectsV2Command({
-        Bucket: BUCKET,
-        Prefix: base || undefined,
-        Delimiter: "/",
-        ContinuationToken: token,
-        MaxKeys: 1000,
-      })
-    );
-
-    let prefixes = (out.CommonPrefixes || []).map((p) => p.Prefix);
-
-    // 2) Fallback (Wasabi às vezes não retorna CommonPrefixes na raiz)
-    if (prefixes.length === 0) {
-      const out2 = await s3.send(
-        new ListObjectsV2Command({
-          Bucket: BUCKET,
-          Prefix: base || undefined,
-          ContinuationToken: token,
-          MaxKeys: 1000,
-        })
-      );
-
-      const set = new Set();
-      for (const obj of out2.Contents || []) {
-        const k = obj.Key || "";
-        const without = base ? k.slice(base.length) : k;
-        const first = without.split("/")[0];
-        if (first && without.includes("/")) {
-          set.add((base || "") + first + "/");
-        }
-      }
-      prefixes = [...set];
-      out = out2; // paginar baseado no último result
-    }
-
-    const folders = prefixes
-      .map((p) => ({
-        prefix: p,
-        name: p.slice(base.length).replace(/\/$/, ""),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    res.json({
-      folders,
-      nextToken: out.IsTruncated ? out.NextContinuationToken || null : null,
-    });
-  } catch (err) {
-    console.error("folders error:", err);
-    res.status(500).json({ error: "FOLDERS_LIST_ERROR", detail: String(err?.message || err) });
+    const prefix = String(req.query.prefix || "");
+    const folders = await listPrefixes(prefix);
+    res.json({ folders });
+  } catch (e) {
+    console.error("folders error:", e);
+    res.status(500).json({ error: "folders-failed" });
   }
 });
 
-// /api/list — lista arquivos (somente objetos) dentro do prefixo
 app.get("/api/list", async (req, res) => {
   try {
-    const prefix = (req.query.prefix || "").trim();
-    const token = req.query.token || undefined;
-
-    const out = await s3.send(
-      new ListObjectsV2Command({
-        Bucket: BUCKET,
-        Prefix: prefix || undefined,
-        ContinuationToken: token,
-        MaxKeys: 1000,
-      })
-    );
-
-    const items = (out.Contents || [])
-      .filter((o) => o.Key && !isDirKey(o.Key))
-      .map((o) => ({
-        key: o.Key,
-        name: path.basename(o.Key),
-        size: o.Size || 0,
-        lastModified: o.LastModified ? new Date(o.LastModified).toISOString() : null,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    res.json({
-      items,
-      nextToken: out.IsTruncated ? out.NextContinuationToken || null : null,
-    });
-  } catch (err) {
-    console.error("list error:", err);
-    res.status(500).json({ error: "LIST_ERROR", detail: String(err?.message || err) });
+    const prefix = String(req.query.prefix || "");
+    const token = req.query.token ? String(req.query.token) : null;
+    const out = await listObjects(prefix, token);
+    res.json(out);
+  } catch (e) {
+    console.error("list error:", e);
+    res.status(500).json({ error: "list-failed" });
   }
 });
 
-// /api/search — busca simples dentro do prefix informado
 app.get("/api/search", async (req, res) => {
   try {
-    const q = String(req.query.q || "").trim();
-    const prefix = (req.query.prefix || "").trim();
-    if (!q) return res.json({ items: [] });
-
-    // Limitamos a busca ao prefix informado para não varrer o bucket todo
-    const out = await s3.send(
-      new ListObjectsV2Command({
-        Bucket: BUCKET,
-        Prefix: prefix || undefined,
-        MaxKeys: 1000,
-      })
-    );
-
-    const Q = q.toLowerCase();
-    const items = (out.Contents || [])
-      .filter((o) => o.Key && !isDirKey(o.Key))
-      .filter((o) => path.basename(o.Key).toLowerCase().includes(Q))
-      .map((o) => ({
-        key: o.Key,
-        name: path.basename(o.Key),
-      }));
-
+    const q = String(req.query.q || "");
+    if (!q || q.length < 2) return res.json({ items: [] });
+    const prefix = String(req.query.prefix || "");
+    const items = await searchObjects(q, prefix, 200);
     res.json({ items });
-  } catch (err) {
-    console.error("search error:", err);
-    res.status(500).json({ error: "SEARCH_ERROR", detail: String(err?.message || err) });
+  } catch (e) {
+    console.error("search error:", e);
+    res.status(500).json({ error: "search-failed" });
   }
 });
 
-// /api/stream — URL assinada para tocar/baixar
 app.get("/api/stream", async (req, res) => {
   try {
-    const key = String(req.query.key || "").trim();
-    if (!key) return res.status(400).json({ error: "KEY_REQUIRED" });
-
-    const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
-    const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 }); // 1 hora
-
+    const key = String(req.query.key || "");
+    if (!key) return res.status(400).json({ error: "key required" });
+    const url = await presign(key);
     res.json({ url });
-  } catch (err) {
-    console.error("stream error:", err);
-    res.status(500).json({ error: "STREAM_ERROR", detail: String(err?.message || err) });
+  } catch (e) {
+    console.error("stream error:", e);
+    res.status(500).json({ error: "stream-failed" });
   }
 });
 
-// ---------- Static (FRONT)
-// Servimos tudo que está em /public
-const PUBLIC_DIR = path.join(__dirname, "public");
-if (!fs.existsSync(PUBLIC_DIR)) {
-  console.warn("[WARN] Pasta /public não encontrada — crie /public com seu front.");
+// ========= Static web (layout do /public) =========
+const publicDir = path.join(__dirname, "public");
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir, {
+    setHeaders(res, filePath) {
+      // dá cache curto p/ assets, mas sem ETag (já desligada globalmente)
+      if (/\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=3600, immutable");
+      } else {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+      res.removeHeader("ETag");
+    }
+  }));
+  app.get("/", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
 }
-app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
 
-// Raiz -> index.html
-app.get("/", (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
-});
-
-// ---------- 404 padrão (para APIs)
-app.use("/api", (req, res) => res.status(404).json({ error: "NOT_FOUND" }));
-
-// ---------- Start
-app.listen(PORT, () => {
+// ========= Inicialização =========
+const PORT = process.env.PORT ? Number(process.env.PORT) : 10000;
+const server = http.createServer(app);
+server.listen(PORT, () => {
   console.log(`✅ Server up on ${PORT}`);
 });
