@@ -1,0 +1,32 @@
+name: Deploy app.djafonso.com
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'public/**'
+      - '.github/workflows/deploy-app.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via FTP/FTPS/SFTP
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: ${{ secrets.FTP_PORT }}
+          protocol: ${{ secrets.FTP_PROTOCOL }}   # ftp, ftps ou sftp
+          # Envia só a pasta do front:
+          local-dir: ./public
+          # Destino do subdomínio (app.djafonso.com):
+          server-dir: /public_html/app/
+          # Mantém histórico de sincronização (mais rápido e seguro)
+          state-name: .ftp-deploy-sync-state-app.json
+          # NÃO apaga tudo no servidor — só sincroniza diferenças
+          dangerous-clean-slate: false
