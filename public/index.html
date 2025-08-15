@@ -236,6 +236,12 @@
       </div>
       <div id="favList"></div>
     </section>
+
+    <!-- NOVO: PÁGINAS INTERNAS -->
+    <section id="viewPage" class="card" style="display:none">
+      <div id="pageLoading" class="muted" style="padding:6px 2px">Carregando…</div>
+      <iframe id="pageFrame" title="Página interna" style="width:100%;height:72vh;border:0;border-radius:12px;background:#0c1117"></iframe>
+    </section>
   </div>
 
   <!-- LOGIN -->
@@ -296,13 +302,20 @@
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
 
-  /* ==== NOVO: abrir páginas secundárias em nova aba para manter o áudio ==== */
-  function openNew(url){
-    try{ window.open(url, "_blank", "noopener"); }
-    catch{ location.href = url; } // fallback
+  /* ====== Router interno ====== */
+  const views = ["viewHome","viewList","viewFavs","viewPage"];
+  function showOnly(viewId){
+    views.forEach(v => { const n=el(v); if(n) n.style.display = (v===viewId? "": "none"); });
   }
-  /* ==== NOVO: Premium deve abrir fora para não matar o player ==== */
-  const goPremium = ()=> openNew(PREMIUM_URL);
+  function openInApp(url){
+    const frame = el("pageFrame"), loading = el("pageLoading");
+    if(!frame) return location.href = url; // fallback extremo
+    loading.style.display="";
+    frame.src = url;
+    showOnly("viewPage");
+    frame.onload = ()=> { loading.style.display="none"; };
+  }
+  const goPremium = ()=> openInApp(PREMIUM_URL);
 
   /* ===== SVGs ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
@@ -391,7 +404,7 @@
 
   async function goHome(){
     currentPrefix = "";
-    hide("viewList"); hide("viewFavs"); show("viewHome");
+    showOnly("viewHome");
     await loadRootFolders();
   }
 
@@ -449,7 +462,7 @@
         if(match){ enterFolder(match.prefix); }
         else{
           alert("Playlist premium específica não encontrada. Abrindo a seção premium para você escolher.");
-          goPremium(); // abre fora
+          openInApp(PREMIUM_URL); // abre DENTRO do app
         }
       };
     });
@@ -461,9 +474,9 @@
 
   async function enterFolder(prefix){
     currentPrefix = prefix || ""; nextToken = null; items = [];
-    hide("viewHome"); hide("viewFavs"); show("viewList");
-    // Se for pasta Premium, abre fora para não parar música
-    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
+    // Premium: abre a página de assinatura dentro do app
+    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ openInApp(PREMIUM_URL); return; }
+    showOnly("viewList");
     await loadSubfolders();
     await loadMore();
   }
@@ -605,7 +618,7 @@
   async function doSearch(){
     const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
-    hide("viewHome"); hide("viewFavs"); show("viewList");
+    showOnly("viewList");
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
   }
@@ -679,15 +692,15 @@
     closeMenu();
     switch(act){
       case "home": goHome(); break;
-      case "account": openNew("/conta.html"); break;          // abre fora
+      case "account": openInApp("/conta.html"); break;          // abre DENTRO
       case "search": el("q").focus(); break;
-      case "playlists": openNew("/playlists.html"); break;     // abre fora
-      case "downloads": openNew("/downloads.html"); break;     // abre fora
-      case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
-      case "billing": goPremium(); break;                      // abre fora
-      case "settings": openNew("/configuracoes.html"); break;  // abre fora
-      case "notify":   openNew("/notificacoes.html"); break;   // abre fora
-      case "help": openNew("/ajuda.html"); break;              // abre fora
+      case "playlists": openInApp("/playlists.html"); break;     // dentro
+      case "downloads": openInApp("/downloads.html"); break;     // dentro
+      case "favs": showOnly("viewFavs"); renderFavs(); break;
+      case "billing": goPremium(); break;                        // dentro
+      case "settings": openInApp("/configuracoes.html"); break;  // dentro
+      case "notify":   openInApp("/notificacoes.html"); break;   // dentro
+      case "help": openInApp("/ajuda.html"); break;              // dentro
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
@@ -711,7 +724,7 @@
   el("btnFavPlayAll").onclick = ()=>{
     const f = favs(); if(!f.length) return;
     items = f.map(k=>({ key:k, name:k.split("/").pop() }));
-    show("viewList"); hide("viewHome"); hide("viewFavs");
+    showOnly("viewList");
     renderList();
     playKey(items[0].key, items[0].name);
   };
@@ -746,7 +759,7 @@
     setInterval(save, 30000);
   })();
 
-  /* ===== NOVO: aviso ao sair se estiver tocando ===== */
+  /* ===== Aviso ao sair se estiver tocando ===== */
   window.addEventListener("beforeunload", (e)=>{
     try{
       const a = document.getElementById("audio");
