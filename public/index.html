@@ -79,6 +79,7 @@
     border-radius:16px; padding:10px 8px 10px 10px; margin:6px 0;
     box-shadow:0 3px 12px rgba(0,0,0,.14)
   }
+  /* compactação para caber ~10 no mobile */
   .t-left{display:grid; place-items:center}
   .t-play{
     width:40px; height:40px; border-radius:999px;
@@ -95,6 +96,7 @@
   .t-kebab{width:36px; height:36px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer}
   .t-kebab svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
 
+  /* menu item */
   .t-menu{
     position:absolute; right:6px; top:52px; background:#0f1720; border:1px solid rgba(255,255,255,.12);
     padding:10px; border-radius:12px; display:none; min-width:240px; z-index:5; text-align:right;
@@ -117,6 +119,7 @@
   .btn:hover{transform:translateY(-1px)}
   .btn-primary{border:none; background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14}
 
+  /* Smartphones extra compact */
   @media(max-width:440px){
     .t-play{width:36px;height:36px}
     .t-title{font-size:13px}
@@ -155,10 +158,6 @@
   .menu-pop.open{display:block}
   .menu-pop .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-pop .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
-
-  /* ===== Visor de página em tela cheia ===== */
-  #frameWrap{position:fixed; inset:0; background:var(--bg); z-index:200; display:none}
-  #frame{position:absolute; inset:0; width:100%; height:100%; border:0}
 </style>
 </head>
 <body>
@@ -290,35 +289,13 @@
     <audio id="audio" crossorigin="anonymous"></audio>
   </footer>
 
-  <!-- Visor de página em tela cheia (mesmo subdomínio) -->
-  <div id="frameWrap" aria-hidden="true">
-    <iframe id="frame" title="Página" src=""></iframe>
-  </div>
-
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
   const PREMIUM_PREFIX = "PREMIUM/";
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
-
-  /* ===== Tela cheia dentro do app (apenas caminhos relativos) ===== */
-  function openFull(url){
-    try{ closeMenu(); }catch{}
-    const w = el("frameWrap"), f = el("frame");
-    if(!w || !f){ location.href = url; return; } // fallback
-    f.src = url;               // <- mantém o MESMO subdomínio
-    w.style.display = "";
-    w.setAttribute("aria-hidden","false");
-  }
-  function closeFull(){
-    const w = el("frameWrap"), f = el("frame");
-    if(!w || !f) return;
-    f.removeAttribute("src");
-    w.style.display = "none";
-    w.setAttribute("aria-hidden","true");
-  }
-  const goPremium = ()=> openFull(PREMIUM_URL);
+  const goPremium = ()=> location.href = PREMIUM_URL;
 
   /* ===== SVGs ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
@@ -331,6 +308,7 @@
   function icoRepeat(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M17 1l3 3-3 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 11V8a3 3 0 0 1 3-3h13' stroke-width='2.2' stroke-linecap='round'/><path d='M7 23l-3-3 3-3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 13v3a3 3 0 0 1-3 3H4' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoVolume(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M4 10v4h4l6 5V5l-6 5H4z' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/><path d='M18 9a3 3 0 0 1 0 6M20 7a6 6 0 0 1 0 10' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoHeart(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.7-9.5-8A5.6 5.6 0 0 1 12 6a5.6 5.6 0 0 1 9.5 7c-2.5 3.3-9.5 8-9.5 8Z" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+  /* Kebab VERTICAL (⋮) */
   function icoKebab(){return `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/><circle cx="12" cy="19" r="2" stroke-width="2"/></svg>`}
   function icoUser(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2.2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2.2" stroke-linecap="round"/></svg>`}
   function icoAccount(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2" stroke-linecap="round"/></svg>`}
@@ -371,6 +349,8 @@
   }
 
   /* ===== infra ===== */
+  function show(id){ el(id).style.display = ""; }
+  function hide(id){ el(id).style.display = "none"; }
   async function api(path, opts = {}) {
     const headers = Object.assign(
       { "Content-Type":"application/json" },
@@ -382,9 +362,6 @@
     if (!res.ok) throw data || { error: "HTTP " + res.status };
     return data;
   }
-  const elById = id => document.getElementById(id);
-  function show(id){ elById(id).style.display = ""; }
-  function hide(id){ elById(id).style.display = "none"; }
 
   let currentPrefix = "", nextToken = null, items = [];
   let premiumFolders = [];
@@ -393,27 +370,27 @@
     try { await api("/api/me"); show("app"); hide("viewLogin"); }
     catch { hide("app"); show("viewLogin"); }
   }
-  document.getElementById("formLogin").addEventListener("submit", async ()=>{
-    const pin = document.getElementById("pin").value.trim();
-    const msg = document.getElementById("msg");
-    if(pin.length<3){ msg.textContent="Digite pelo menos 3 dígitos."; return; }
-    msg.textContent="Entrando...";
+  el("formLogin").addEventListener("submit", async ()=>{
+    const pin = el("pin").value.trim();
+    if(pin.length<3){ el("msg").textContent="Digite pelo menos 3 dígitos."; return; }
+    el("msg").textContent="Entrando...";
     try{
       const d = await api("/api/login",{ method:"POST", body: JSON.stringify({ pin }) });
       if(!d.token) throw d;
       localStorage.setItem(TOKEN_KEY, d.token);
-      msg.textContent = "Login OK!";
+      el("msg").textContent = "Login OK!";
       await boot();
-    }catch(e){ msg.textContent = e?.error || "Falha no login"; }
+    }catch(e){ el("msg").textContent = e?.error || "Falha no login"; }
   });
 
   async function goHome(){
     currentPrefix = "";
     hide("viewList"); hide("viewFavs"); show("viewHome");
+    await loadRootFolders();
   }
 
   async function loadRootFolders(){
-    const g = document.getElementById("foldersGrid"); g.innerHTML = "";
+    const g = el("foldersGrid"); g.innerHTML = "";
     const d = await api("/api/folders?prefix=");
     const folders = (d.folders || []);
     if(!folders.length){ g.innerHTML = `<div class="card">Nenhuma pasta encontrada na raiz do bucket.</div>`; return; }
@@ -466,7 +443,7 @@
         if(match){ enterFolder(match.prefix); }
         else{
           alert("Playlist premium específica não encontrada. Abrindo a seção premium para você escolher.");
-          openFull(PREMIUM_URL);
+          enterFolder(PREMIUM_PREFIX);
         }
       };
     });
@@ -479,14 +456,16 @@
   async function enterFolder(prefix){
     currentPrefix = prefix || ""; nextToken = null; items = [];
     hide("viewHome"); hide("viewFavs"); show("viewList");
-    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ openFull(PREMIUM_URL); return; }
+    el("list").innerHTML = "";
+    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
     await loadSubfolders();
     await loadMore();
   }
 
+  /* ====== SUBPASTAS COMO QUADRADOS ====== */
   async function loadSubfolders(){
-    const wrap = document.getElementById("subfoldersWrap");
-    const grid = document.getElementById("subfoldersGrid");
+    const wrap = el("subfoldersWrap");
+    const grid = el("subfoldersGrid");
     grid.innerHTML = ""; wrap.style.display = "none";
     try{
       const d = await api("/api/folders?prefix="+encodeURIComponent(currentPrefix));
@@ -509,14 +488,15 @@
     nextToken = d.nextToken || null;
     (d.items||[]).forEach(it=> items.push(it));
     renderList();
-    document.getElementById("btnMore").disabled = !nextToken;
+    el("btnMore").disabled = !nextToken;
   }
 
   function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
 
+  /* ===== renderização da lista (compacta) ===== */
   function renderList(){
-    const UL = document.getElementById("list"); UL.innerHTML = "";
+    const UL = el("list"); UL.innerHTML = "";
     if(!items.length){
       UL.innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Nenhuma música nesta pasta.</li>`;
       return;
@@ -616,33 +596,20 @@
   }
 
   /* ===== BUSCA ===== */
-  document.getElementById("q").addEventListener("keydown", e=>{ if(e.key==="Enter") doSearch(); });
   async function doSearch(){
-    const q = document.getElementById("q").value.trim();
+    const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
     hide("viewHome"); hide("viewFavs"); show("viewList");
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
   }
+  el("q").addEventListener("keydown", e=>{ if(e.key==="Enter") doSearch(); });
 
   /* ===== PLAYER ===== */
-  const audio = document.getElementById("audio");
-  const seek  = document.getElementById("seek");
-  const nowTitle = document.getElementById("nowTitle");
-  const nowFolder= document.getElementById("nowFolder");
-  const nowTime  = document.getElementById("nowTime");
-  const pPlay = document.getElementById("pPlay");
-  const pPrev = document.getElementById("pPrev");
-  const pNext = document.getElementById("pNext");
-  const pHome = document.getElementById("pHome");
-  const pSearch = document.getElementById("pSearch");
-  const volPop = document.getElementById("volPop");
-  const volRange = document.getElementById("volRange");
-  const pVolume = document.getElementById("pVolume");
-  const pShuffle= document.getElementById("pShuffle");
-  const pRepeat = document.getElementById("pRepeat");
-  const btnKebab= document.getElementById("btnKebab");
-  const menuPop = document.getElementById("menuPop");
+  const audio = el("audio"); const seek = el("seek"); const nowTitle = el("nowTitle"); const nowFolder = el("nowFolder"); const nowTime = el("nowTime");
+  const pPlay = el("pPlay"); const pPrev = el("pPrev"); const pNext = el("pNext"); const pHome = el("pHome"); const pSearch = el("pSearch");
+  const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
+  const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
   let currentKey = null, currentName = null, shuffleOn=false, repeatOn=false;
 
@@ -662,12 +629,12 @@
   });
   seek.addEventListener("input", ()=>{ const dur=audio.duration||0; if(dur<=0) return; audio.currentTime = (Number(seek.value)/1000)*dur; updateTimeUI(); });
 
-  function setPlayIcon(isPlaying){ document.getElementById("pPlay").innerHTML = isPlaying ? icoPause() : icoPlay(); }
+  function setPlayIcon(isPlaying){ el("pPlay").innerHTML = isPlaying ? icoPause() : icoPlay(); }
   pPlay.onclick = ()=>{ if(!audio.src) return; if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); } };
   pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
   pNext.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx<items.length-1) playKey(items[idx+1].key, items[idx+1].name); } };
-  pHome.onclick = ()=>{ closeFull(); goHome(); };
-  pSearch.onclick = ()=> document.getElementById("q").focus();
+  pHome.onclick = goHome;
+  pSearch.onclick = ()=> el("q").focus();
   pShuffle.onclick = ()=>{ shuffleOn=!shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
   pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
 
@@ -679,16 +646,11 @@
   });
   btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); volPop.classList.remove("open"); };
 
-  document.getElementById("miShare").onclick = async ()=>{
-    try{
-      if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); }
-      else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); }
-    }catch{}
-  };
-  document.getElementById("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
-  document.getElementById("miDown").onclick = goPremium;
-  document.getElementById("miCreatePl").onclick = goPremium;
-  document.getElementById("miSavePl").onclick = goPremium;
+  el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
+  el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
+  el("miDown").onclick = goPremium;
+  el("miCreatePl").onclick = goPremium;
+  el("miSavePl").onclick = goPremium;
 
   async function playKey(key,name){
     const d = await api("/api/stream?key="+encodeURIComponent(key));
@@ -697,51 +659,40 @@
   }
 
   /* ===== Drawer do usuário ===== */
-  const userBtn = document.getElementById("userBtn");
-  const userMenu = document.getElementById("userMenu");
-  const backdrop = document.getElementById("menuBackdrop");
+  const userBtn = el("userBtn"), userMenu = el("userMenu"), backdrop = el("menuBackdrop");
   function closeMenu(){ userMenu.classList.remove("open"); userMenu.setAttribute("aria-hidden","true"); backdrop.classList.remove("open"); }
   function openMenu(){ userMenu.classList.add("open"); userMenu.setAttribute("aria-hidden","false"); backdrop.classList.add("open"); }
   userBtn.addEventListener("click", (e)=>{ e.stopPropagation(); userMenu.classList.contains("open") ? closeMenu() : openMenu(); });
   backdrop.addEventListener("click", closeMenu);
-  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ closeMenu(); closeFull(); } });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeMenu(); });
 
-  /* Delegação + binds diretos para menu */
   userMenu.addEventListener("click", (e)=>{
-    const btn = e.target.closest('[data-act]');
-    if(!btn) return;
-    e.preventDefault();
-    handleAct(btn.getAttribute('data-act'));
-  });
-  function bind(id, act){ const b=document.getElementById(id); if(b) b.addEventListener('click', ev=>{ ev.preventDefault(); handleAct(act); }); }
-  function handleAct(act){
+    if(!(e.target instanceof HTMLElement)) return;
+    const act = e.target.getAttribute("data-act") || e.target.parentElement?.getAttribute("data-act");
+    if(!act) return;
     closeMenu();
     switch(act){
-      case "home":     closeFull(); goHome(); break;
-      case "account":  openFull("/conta.html"); break;
-      case "search":   document.getElementById("q").focus(); break;
-      case "playlists":openFull("/playlists.html"); break;
-      case "downloads":openFull("/downloads.html"); break;
-      case "favs":     closeFull(); hide("viewHome"); hide("viewList"); show("viewFavs"); renderFavs(); break;
-      case "billing":  goPremium(); break;
-      case "settings": openFull("/configuracoes.html"); break;
-      case "notify":   openFull("/notificacoes.html"); break;
-      case "help":     openFull("/ajuda.html"); break;
-      case "logout":   localStorage.removeItem(TOKEN_KEY); location.reload(); break;
+      case "home": goHome(); break;
+      case "account": location.href = "/conta.html"; break;
+      case "search": el("q").focus(); break;
+      case "playlists": location.href = "/playlists.html"; break;
+      case "downloads": location.href = "/downloads.html"; break;
+      case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
+      case "billing": goPremium(); break;
+      case "settings": location.href = "/configuracoes.html"; break;
+      case "notify":   location.href = "/notificacoes.html"; break;
+      case "help": location.href = "/ajuda.html"; break;
+      case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
-  }
-  bind('miHome','home'); bind('miAccount','account'); bind('miSearch','search');
-  bind('miPlaylists','playlists'); bind('miDowns','downloads'); bind('miFavs','favs');
-  bind('miBilling','billing'); bind('miSettings','settings'); bind('miNotify','notify');
-  bind('miHelp','help'); bind('miLogout','logout');
+  });
 
   /* ===== Navegação ===== */
-  document.getElementById("btnMore").onclick = loadMore;
+  el("btnMore").onclick = loadMore;
 
   /* Favoritos + Escutar todas */
   function renderFavs(){
-    const cont = document.getElementById("favList"); cont.innerHTML = "";
-    const f = favs(); document.getElementById("btnFavPlayAll").style.display = f.length? "" : "none";
+    const cont = el("favList"); cont.innerHTML = "";
+    const f = favs(); el("btnFavPlayAll").style.display = f.length? "" : "none";
     if(!f.length){ cont.innerHTML = `<div class="muted">Você ainda não marcou favoritos.</div>`; return; }
     f.forEach(k=>{
       const row = document.createElement("div"); row.className="track"; row.style.padding="10px 10px";
@@ -751,22 +702,20 @@
       cont.appendChild(row);
     });
   }
-  document.getElementById("btnFavPlayAll").onclick = ()=>{
+  el("btnFavPlayAll").onclick = ()=>{
     const f = favs(); if(!f.length) return;
     items = f.map(k=>({ key:k, name:k.split("/").pop() }));
-    closeFull();
-    hide("viewHome"); hide("viewFavs"); show("viewList");
+    show("viewList"); hide("viewHome"); hide("viewFavs");
     renderList();
     playKey(items[0].key, items[0].name);
   };
 
   async function ensureAuthAndLoad(){
     await ensureAuth();
-    if(document.getElementById("app").style.display!=="none"){
+    if(el("app").style.display!=="none"){
       setFlatIcons();
       await loadPremiumFolders();
       await goHome();
-      await loadRootFolders();
     }
   }
   ensureAuthAndLoad();
@@ -790,18 +739,6 @@
     window.addEventListener("beforeunload", save);
     setInterval(save, 30000);
   })();
-
-  /* ===== Aviso ao sair se estiver tocando ===== */
-  window.addEventListener("beforeunload", (e)=>{
-    try{
-      const a = document.getElementById("audio");
-      if(a && !a.paused){
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
-    }catch{}
-  });
 </script>
 </body>
 </html>
