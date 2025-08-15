@@ -297,6 +297,26 @@
   const el = id => document.getElementById(id);
   const goPremium = ()=> location.href = PREMIUM_URL;
 
+  /* ===== NOVO: Memória de reprodução ===== */
+  const PLAYBACK_KEY = "loove_playback_v1";
+  function loadPlayback(){
+    try{ return JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "{}"); }catch{return {}}
+  }
+  function savePlayback(data){
+    try{
+      const state = Object.assign({}, loadPlayback(), data || {});
+      localStorage.setItem(PLAYBACK_KEY, JSON.stringify(state));
+    }catch{}
+  }
+  function clearPlayback(){ localStorage.removeItem(PLAYBACK_KEY); }
+  function throttle(fn, ms){
+    let last = 0;
+    return function(...args){
+      const now = Date.now();
+      if(now - last >= ms){ last = now; fn.apply(this,args); }
+    }
+  }
+
   /* ===== SVGs ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
   function icoSearch(){return `<svg viewBox='0 0 24 24' fill='none'><circle cx='11' cy='11' r='7' stroke-width='2.2'/><path d='M20 20l-3.5-3.5' stroke-width='2.2' stroke-linecap='round'/></svg>`}
@@ -656,7 +676,25 @@
     const d = await api("/api/stream?key="+encodeURIComponent(key));
     audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
     audio.play(); setPlayIcon(true);
+    /* NOVO: salvar imediatamente que estamos tocando esta faixa */
+    savePlayback({ key, name, pos: 0, playing: true });
   }
+
+  /* ===== NOVO: salvar progresso com throttle (a cada ~3s) ===== */
+  const saveProgressThrottled = throttle(()=>{
+    if(!currentKey) return;
+    savePlayback({
+      key: currentKey,
+      name: currentName || (currentKey.split("/").pop()),
+      pos: Math.floor(audio.currentTime || 0),
+      playing: !audio.paused
+    });
+  }, 3000);
+
+  audio.addEventListener("timeupdate", saveProgressThrottled);
+  audio.addEventListener("play", ()=> savePlayback({ key: currentKey, name: currentName, playing: true, pos: Math.floor(audio.currentTime||0) }));
+  audio.addEventListener("pause", ()=> savePlayback({ key: currentKey, name: currentName, playing: false, pos: Math.floor(audio.currentTime||0) }));
+  window.addEventListener("beforeunload", ()=> savePlayback({ key: currentKey, name: currentName, pos: Math.floor(audio.currentTime||0), playing: !audio.paused }));
 
   /* ===== Drawer do usuário ===== */
   const userBtn = el("userBtn"), userMenu = el("userMenu"), backdrop = el("menuBackdrop");
@@ -710,12 +748,52 @@
     playKey(items[0].key, items[0].name);
   };
 
+  /* ===== NOVO: Tentar retomar a reprodução salva no localStorage ===== */
+  async function tryResumePlayback(){
+    const st = loadPlayback();
+    const savedKey = st?.key;
+    const savedName = st?.name;
+    const savedPos = Number(st?.pos || 0);
+    const shouldPlay = !!st?.playing;
+
+    if(!savedKey) return; // nada salvo
+
+    try{
+      // Pede uma URL nova (caso a anterior tenha expirado)
+      const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
+      audio.src = d.url;
+      currentKey = savedKey;
+      currentName = savedName || savedKey.split("/").pop();
+      setNow(currentName, currentKey);
+
+      // Quando os metadados carregarem, reposiciona e decide tocar/pausar
+      audio.addEventListener("loadedmetadata", function onMeta(){
+        audio.removeEventListener("loadedmetadata", onMeta);
+        // Garante que não passa do final
+        const dur = audio.duration || 0;
+        const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
+        if(target > 0) audio.currentTime = target;
+        updateTimeUI();
+        if(shouldPlay){
+          audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false));
+        }else{
+          setPlayIcon(false);
+        }
+      });
+    }catch(e){
+      // Se falhar, limpamos o estado antigo para evitar loops
+      clearPlayback();
+    }
+  }
+
   async function ensureAuthAndLoad(){
     await ensureAuth();
     if(el("app").style.display!=="none"){
       setFlatIcons();
       await loadPremiumFolders();
       await goHome();
+      // NOVO: tenta retomar após carregar a home
+      await tryResumePlayback();
     }
   }
   ensureAuthAndLoad();
