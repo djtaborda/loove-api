@@ -118,7 +118,7 @@
   .btn:hover{transform:translateY(-1px)}
   .btn-primary{border:none; background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14}
 
-  /* Smartphones */
+  /* Smartphones extra compact */
   @media(max-width:440px){
     .t-play{width:36px;height:36px}
     .t-title{font-size:13px}
@@ -184,7 +184,6 @@
   .pl-menu button{width:100%; text-align:left; padding:8px 10px; border-radius:10px; background:transparent; border:1px solid transparent; color:#e6ecf2; cursor:pointer; font-weight:700}
   .pl-menu button:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
 
-  /* ===== Modal seletor de playlist ===== */
   .pl-modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:80}
   .pl-modal.open{display:flex}
   .pl-card{width:min(92vw,420px); background:#0f1720; border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px}
@@ -201,7 +200,6 @@
         <div class="avatar" id="avatarIcon"></div>
       </div>
 
-      <!-- Drawer lateral e backdrop -->
       <div id="menuBackdrop" class="backdrop"></div>
       <div class="menu" id="userMenu" aria-hidden="true">
         <h4>MENU</h4>
@@ -359,7 +357,7 @@
   function clearPlayback(){ localStorage.removeItem(PLAYBACK_KEY); }
   function throttle(fn, ms){ let last=0; return (...a)=>{ const n=Date.now(); if(n-last>=ms){ last=n; fn.apply(this,a);} } }
 
-  /* ===== SVGs ===== */
+  /* ===== SVGs (INCLUINDO icoSettings CORRIGIDO) ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
   function icoSearch(){return `<svg viewBox='0 0 24 24' fill='none'><circle cx='11' cy='11' r='7' stroke-width='2.2'/><path d='M20 20l-3.5-3.5' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoPrev(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M11 6l-7 6 7 6V6zM20 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
@@ -374,6 +372,7 @@
   function icoUser(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2.2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2.2" stroke-linecap="round"/></svg>`}
   function icoAccount(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2" stroke-linecap="round"/></svg>`}
   function icoBell(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3Z" stroke-width="2"/><path d="M10 19a2 2 0 0 0 4 0" stroke-width="2"/></svg>`}
+  function icoSettings(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" stroke-width="2"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M19.4 4.6l-2.1 2.1M6.7 17.3l-2.1 2.1" stroke-width="2" stroke-linecap="round"/></svg>`}
   function icoHelp(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M12 17h0" stroke-width="2" stroke-linecap="round"/></svg>`}
   function icoLogout(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" stroke-width="2"/><path d="M16 17l5-5-5-5" stroke-width="2" stroke-linecap="round"/><path d="M21 12H9" stroke-width="2"/></svg>`}
   function icoPlaylist(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 6h14M3 10h14M3 14h9" stroke-width="2" stroke-linecap="round"/><path d="M18 14v6l3-2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
@@ -521,7 +520,6 @@
     await loadMore();
   }
 
-  /* ====== SUBPASTAS ====== */
   async function loadSubfolders(){
     const wrap = el("subfoldersWrap");
     const grid = el("subfoldersGrid");
@@ -553,7 +551,6 @@
   function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
 
-  /* ===== render lista ===== */
   function renderList(){
     const UL = el("list"); UL.innerHTML = "";
     if(!items.length){
@@ -599,7 +596,6 @@
 
       const menu = document.createElement("div");
       menu.className="t-menu";
-      /* ATUALIZADO: ações de playlist liberadas */
       menu.innerHTML = `
         <button class="menu-item miShare">Compartilhar</button>
         <button class="menu-item miFav">${isFav(m.key)?"Remover dos favoritos":"Favoritar"}</button>
@@ -716,7 +712,6 @@
   el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
   el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
   el("miDown").onclick = goPremium;
-  /* ATUALIZADO: botões do menu do player */
   el("miCreatePl").onclick = ()=>{ const n=prompt("Nome da nova playlist:"); if(!n) return; createPlaylistInternal(n.trim()); renderMyPlaylists(); alert("Playlist criada!"); };
   el("miSavePl").onclick   = ()=>{ if(!currentKey){ alert("Nada tocando."); return; } openPlaylistPicker(currentKey); };
 
@@ -786,22 +781,19 @@
     playKey(items[0].key, items[0].name);
   };
 
-  /* ===== Playlists: persistência ===== */
+  /* ===== Playlists (localStorage) ===== */
   function loadUserPlaylists(){ try{ return JSON.parse(localStorage.getItem(PLAYLISTS_KEY)||"[]"); }catch{ return []; } }
   function saveUserPlaylists(arr){ localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(arr||[])); }
 
-  /* Capa automática (canvas->dataURL) */
   function coverFor(name, seed){
     const c=document.createElement("canvas"); c.width=300; c.height=300;
     const ctx=c.getContext("2d");
     ctx.fillStyle="#000"; ctx.fillRect(0,0,300,300);
-    // círculos em tons amber laranja
     const n = (seed||0)%1000; const r1=60+(n%30), r2=40+((n*3)%30), r3=30+((n*7)%25);
     ctx.globalAlpha=0.25; ctx.fillStyle="#ff9f1a"; ctx.beginPath(); ctx.arc(90,90,r1,0,Math.PI*2); ctx.fill();
     ctx.fillStyle="#ff7a00"; ctx.beginPath(); ctx.arc(220,110,r2,0,Math.PI*2); ctx.fill();
     ctx.fillStyle="#ffb02e"; ctx.beginPath(); ctx.arc(160,210,r3,0,Math.PI*2); ctx.fill();
     ctx.globalAlpha=1;
-    // iniciais
     const parts=(name||"PL").split(/\s+/).filter(Boolean); const initials=(parts[0]?.[0]||"P")+(parts[1]?.[0]||"L");
     ctx.fillStyle="#ffffff"; ctx.font="bold 140px Inter, Arial, sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
     ctx.fillText(initials.toUpperCase(),150,160);
@@ -826,10 +818,8 @@
       b.className = "pl-item";
       b.textContent = p.name || "Playlist";
       b.title = `${p.name} (${(p.tracks||[]).length} músicas)`;
-      // capa
       try{ b.style.backgroundImage = `url('${coverFor(p.name, (p.createdAt||0)%100000)}')`; }catch{}
       b.onclick = ()=> openPlaylist(p.id);
-      // menu ⋯
       const dot = document.createElement("button"); dot.className="pl-dot"; dot.innerHTML="⋯";
       const menu = document.createElement("div"); menu.className="pl-menu";
       const rBtn = document.createElement("button"); rBtn.textContent="Renomear";
@@ -847,8 +837,7 @@
   function createPlaylistInternal(name){
     const pls = loadUserPlaylists();
     const id = slug(name) + "-" + Date.now().toString(36);
-    const exists = pls.some(p=>p.name.toLowerCase()===name.toLowerCase());
-    const pl = { id, name: name || "Playlist", tracks: [], createdAt: Date.now(), exists };
+    const pl = { id, name: name || "Playlist", tracks: [], createdAt: Date.now() };
     pls.push(pl); saveUserPlaylists(pls);
     return pl;
   }
@@ -870,7 +859,6 @@
     renderMyPlaylists();
   }
 
-  /* Abrir playlist -> carrega no viewList */
   function openPlaylist(plId){
     const pls = loadUserPlaylists();
     const pl = pls.find(p=>p.id===plId);
@@ -884,7 +872,6 @@
     }
   }
 
-  /* ===== Picker (modal) para adicionar música a playlist ===== */
   const plModal = el("plModal"), plList = el("plList"), plClose = el("plClose");
   function openPlaylistPicker(trackKey){
     const pls = loadUserPlaylists();
@@ -963,7 +950,7 @@
   ensureAuthAndLoad();
   async function boot(){ await ensureAuthAndLoad(); }
 
-  /* ===== Estatística local (opcional) ===== */
+  /* ===== Estatística local ===== */
   (function trackUsage(){
     const KEY="loove_usage_stats";
     let start=Date.now();
