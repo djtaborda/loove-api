@@ -24,7 +24,7 @@
   /* ======= HEADER ======= */
   header{position:relative; padding-top:12px; margin-bottom:12px}
   .userbox{position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
-  .userbox .name{display:none} /* não mostrar texto do usuário */
+  .userbox .name{display:none} /* sem texto do usuário */
   .avatar{width:44px; height:44px; display:grid; place-items:center; border-radius:50%}
   .avatar svg{width:30px; height:30px; stroke:#ffffff; opacity:.95}
 
@@ -275,7 +275,7 @@
   const el = id => document.getElementById(id);
   const goPremium = ()=> location.href = PREMIUM_URL;
 
-  /* ===== SVGs ===== */
+  /* ===== SVGs (ícones flat) ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
   function icoSearch(){return `<svg viewBox='0 0 24 24' fill='none'><circle cx='11' cy='11' r='7' stroke-width='2.2'/><path d='M20 20l-3.5-3.5' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoPrev(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M11 6l-7 6 7 6V6zM20 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
@@ -441,85 +441,55 @@
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
-  /* ===== DURAÇÃO: fila com concorrência limitada ===== */
-  const durationCache = new Map();
-  const DUR_MAX = 2;           // quantos cálculos simultâneos no máx.
-  let durInFlight = 0;
-  const durQueue = [];
-
-  const durObserver = new IntersectionObserver((entries)=>{
-    entries.forEach(en=>{
-      if (!en.isIntersecting) return;
-      const li = en.target;
-      durObserver.unobserve(li);
-      const key = li.dataset.key;
-      const span = li.querySelector('.t-sub .dur');
-      if (key && span) enqueueDuration(key, span);
-    });
-  },{root:null, rootMargin:'200px 0px', threshold:0});
-
-  function enqueueDuration(key, span){
-    if (durationCache.has(key)) {
-      span.textContent = fmt(durationCache.get(key));
-      return;
-    }
-    span.textContent = '—:—';
-    durQueue.push({key, span});
-    pumpDurQueue();
-  }
-
-  async function pumpDurQueue(){
-    if (durInFlight >= DUR_MAX || !durQueue.length) return;
-    durInFlight++;
-    const {key, span} = durQueue.shift();
-    try{
-      const d = await api('/api/stream?key='+encodeURIComponent(key));
-      const a = new Audio();
-      a.crossOrigin = 'anonymous';
-      a.preload = 'metadata';
-      a.src = d.url;
-
-      await new Promise((res)=>{
-        const done = ()=>{ a.src=''; res(); };
-        a.addEventListener('loadedmetadata', ()=>{
-          const sec = isFinite(a.duration) ? a.duration : 0;
-          if (sec) durationCache.set(key, sec);
-          span.textContent = sec ? fmt(sec) : '--:--';
-          done();
-        }, {once:true});
-        a.addEventListener('error', ()=>{ span.textContent='--:--'; done(); }, {once:true});
-      });
-    } finally {
-      durInFlight--;
-      pumpDurQueue();     // dispara o próximo
-    }
-  }
-
-  /* ===== renderização da lista ===== */
+  /* ===== renderização da lista (sem duração) ===== */
   function renderList(){
     const UL = el("list"); UL.innerHTML = "";
-    if(!items.length){ UL.innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Nenhuma música nesta pasta.</li>`; return; }
+    if(!items.length){
+      UL.innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Nenhuma música nesta pasta.</li>`;
+      return;
+    }
     items.forEach(m=>{
-      const LI = document.createElement("li"); LI.className = "track"; LI.setAttribute("data-key", m.key);
+      const LI = document.createElement("li");
+      LI.className = "track";
+      LI.setAttribute("data-key", m.key);
 
-      const left = document.createElement("div"); left.className = "t-left";
-      const btPlay = document.createElement("button"); btPlay.className = "t-play"; btPlay.innerHTML = "▶";
+      // Play
+      const left = document.createElement("div");
+      left.className = "t-left";
+      const btPlay = document.createElement("button");
+      btPlay.className = "t-play";
+      btPlay.innerHTML = "▶";
       btPlay.onclick = ()=> playKey(m.key, m.name);
       left.appendChild(btPlay);
 
-      const mid = document.createElement("div"); mid.className="t-titleBox";
-      const t1 = document.createElement("div"); t1.className="t-title"; t1.textContent = formatTitle(m.name);
-      const t2 = document.createElement("div"); t2.className="t-sub";
-      t2.innerHTML = `<span class="dur">—:—</span> · <span class="folder">${parentFolderFromKey(m.key)}</span>`;
-      mid.appendChild(t1); mid.appendChild(t2);
+      // Título + pasta (sem tempo)
+      const mid = document.createElement("div");
+      mid.className="t-titleBox";
+      const t1 = document.createElement("div");
+      t1.className="t-title";
+      t1.textContent = formatTitle(m.name);
+      const t2 = document.createElement("div");
+      t2.className="t-sub";
+      t2.textContent = parentFolderFromKey(m.key);
+      mid.appendChild(t1);
+      mid.appendChild(t2);
 
-      const right = document.createElement("div"); right.className="t-right";
-      const like = document.createElement("button"); like.className="t-like"; like.innerHTML = icoHeart();
+      // Ações
+      const right = document.createElement("div");
+      right.className="t-right";
+
+      const like = document.createElement("button");
+      like.className="t-like";
+      like.innerHTML = icoHeart();
       if(isFav(m.key)) like.classList.add("active");
       like.onclick = ()=> { toggleFav(m.key); like.classList.toggle("active"); };
 
-      const keb = document.createElement("button"); keb.className="t-kebab"; keb.innerHTML = icoKebab();
-      const menu = document.createElement("div"); menu.className="t-menu";
+      const keb = document.createElement("button");
+      keb.className="t-kebab";
+      keb.innerHTML = icoKebab();
+
+      const menu = document.createElement("div");
+      menu.className="t-menu";
       menu.innerHTML = `
         <button class="menu-item miShare">Compartilhar</button>
         <button class="menu-item miFav">${isFav(m.key)?"Remover dos favoritos":"Favoritar"}</button>
@@ -549,11 +519,11 @@
       right.appendChild(like);
       right.appendChild(keb);
 
-      LI.appendChild(left); LI.appendChild(mid); LI.appendChild(right);
+      LI.appendChild(left);
+      LI.appendChild(mid);
+      LI.appendChild(right);
       LI.appendChild(menu);
       UL.appendChild(LI);
-
-      durObserver.observe(LI);
     });
   }
 
@@ -580,9 +550,6 @@
   const pPlay = el("pPlay"); const pPrev = el("pPrev"); const pNext = el("pNext"); const pHome = el("pHome"); const pSearch = el("pSearch");
   const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
-
-  // Pré-carrega para começar mais rápido
-  audio.preload = 'auto';
 
   let currentKey = null, currentName = null, shuffleOn=false, repeatOn=false;
 
@@ -645,15 +612,15 @@
     closeMenu();
     switch(act){
       case "home": enterFolder(""); break;
-      case "account": location.href = "/conta.html"; break;           // ALTERADO
+      case "account": location.href = "/conta.html"; break;
       case "search": el("q").focus(); break;
-      case "playlists": location.href = "/playlists.html"; break;     // ALTERADO
-      case "downloads": location.href = "/downloads.html"; break;     // ALTERADO
+      case "playlists": location.href = "/playlists.html"; break;
+      case "downloads": location.href = "/downloads.html"; break;
       case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
       case "billing": goPremium(); break;
       case "settings": location.href = "/configuracoes.html"; break;
       case "notify":   location.href = "/notificacoes.html"; break;
-      case "help": location.href = "/ajuda.html"; break;              // ALTERADO
+      case "help": location.href = "/ajuda.html"; break;
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
@@ -685,7 +652,7 @@
   ensureAuthAndLoad();
   async function boot(){ await ensureAuthAndLoad(); }
 
-  /* ===== Estatística de uso local (Admin demo) ===== */
+  /* ===== Estatística local (opcional) ===== */
   (function trackUsage(){
     const KEY="loove_usage_stats";
     let start=Date.now();
@@ -703,9 +670,6 @@
     window.addEventListener("beforeunload", save);
     setInterval(save, 30000);
   })();
-
-  /* ===== Mantém a API “acordada” enquanto o app estiver aberto ===== */
-  setInterval(()=>{ fetch('/api/health').catch(()=>{}); }, 4*60*1000);
 </script>
 </body>
 </html>
