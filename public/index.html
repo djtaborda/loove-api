@@ -139,9 +139,10 @@
 
   .p-controls{display:flex; align-items:center; justify-content:space-between}
   .p-btn{width:44px; height:44px; border:none; background:transparent; color:#fff; display:grid; place-items:center; cursor:pointer; padding:0}
-  .p-btn svg{width:28px; height:28px; stroke:#ffffff; opacity:.9}
+  /* importante: stroke e fill seguem currentColor para mudar juntos */
+  .p-btn svg{width:28px; height:28px; stroke:#ffffff; color:#ffffff}
   .p-btn:hover svg{opacity:1; filter:drop-shadow(0 0 4px rgba(255,255,255,.25))}
-  .p-btn.active svg{stroke:#31e1ff}
+  .p-btn.active svg{stroke:#31e1ff; color:#31e1ff}
   .p-play{width:62px; height:62px; border-radius:999px; background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; border:none; display:grid; place-items:center; box-shadow:0 8px 30px rgba(255,140,0,.35)}
   .p-play svg{width:28px; height:28px; stroke:#ffffff}
 
@@ -301,13 +302,13 @@
   function icoNext(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M13 6l7 6-7 6V6zM4 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
   function icoPlay(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5l11 7-11 7V5z' stroke-width='2.2' stroke-linejoin='round' stroke='#ffffff'/></svg>`}
   function icoPause(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5v14M16 5v14' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>`}
-  /* SHUFFLE – novo ícone (duas curvas com setas), branco */
+  /* SHUFFLE – simétrico como no print; usa currentColor para mudar o fill das setas junto */
   function icoShuffle(){
-    return `<svg viewBox="0 0 24 24" fill="none">
-      <path d="M4 7h3c3 0 5 5 9 5h4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M20 9l2 2-2 2" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M4 17h3c3 0 4-5 9-5h4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M20 15l2 2-2 2" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7 C 7 7, 9 17, 13 17 H 18"/>
+      <path d="M3 17 C 7 17, 9 7, 13 7 H 18"/>
+      <path d="M22 6 L 18.5 8 L 22 10 Z" fill="currentColor" stroke="none"/>
+      <path d="M22 16 L 18.5 18 L 22 20 Z" fill="currentColor" stroke="none"/>
     </svg>`;
   }
   function icoRepeat(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M17 1l3 3-3 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 11V8a3 3 0 0 1 3-3h13' stroke-width='2.2' stroke-linecap='round'/><path d='M7 23l-3-3 3-3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 13v3a3 3 0 0 1-3 3H4' stroke-width='2.2' stroke-linecap='round'/></svg>`}
@@ -330,7 +331,7 @@
     el("pSearch").innerHTML = icoSearch();
     el("pPrev").innerHTML = icoPrev();
     el("pNext").innerHTML = icoNext();
-    el("pShuffle").innerHTML = icoShuffle(); // SHUFFLE: novo ícone
+    el("pShuffle").innerHTML = icoShuffle(); /* novo shuffle */
     el("pRepeat").innerHTML = icoRepeat();
     el("pVolume").innerHTML = icoVolume();
     el("pPlay").innerHTML = icoPlay();
@@ -499,7 +500,7 @@
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
   function folderPrefixOfKey(key=""){ const p = key.lastIndexOf("/"); return p>=0 ? key.slice(0,p+1) : ""; } // SHUFFLE helper
 
-  /* ===== renderização da lista (compacta) ===== */
+  /* ===== renderização da lista ===== */
   function renderList(){
     const UL = el("list"); UL.innerHTML = "";
     if(!items.length){
@@ -627,7 +628,6 @@
   audio.addEventListener("ended", ()=>{
     setPlayIcon(false);
     if(repeatOn){ audio.currentTime=0; audio.play(); setPlayIcon(true); return; }
-    // SHUFFLE: próximo aleatório somente na mesma pasta
     if(shuffleOn){
       const next = pickRandomFromFolder(currentKey);
       if(next){ playKey(next.key, next.name); return; }
@@ -643,7 +643,6 @@
   pPlay.onclick = ()=>{ if(!audio.src) return; if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); } };
   pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
   pNext.onclick = ()=>{ 
-    // SHUFFLE: ao avançar, respeitar pasta
     if(shuffleOn){
       const next = pickRandomFromFolder(currentKey);
       if(next){ playKey(next.key, next.name); return; }
@@ -669,7 +668,7 @@
   el("miCreatePl").onclick = goPremium;
   el("miSavePl").onclick = goPremium;
 
-  // SHUFFLE: escolhe um item aleatório dentro da mesma pasta da faixa atual
+  /* Escolhe aleatório na mesma pasta */
   function pickRandomFromFolder(current){
     if(!currentFolderPrefix) return null;
     const pool = items.filter(it => it.key && it.key.startsWith(currentFolderPrefix));
@@ -682,7 +681,7 @@
   async function playKey(key,name){
     const d = await api("/api/stream?key="+encodeURIComponent(key));
     audio.src = d.url; currentKey = key; currentName = name;
-    currentFolderPrefix = folderPrefixOfKey(key); // SHUFFLE: memoriza pasta da faixa atual
+    currentFolderPrefix = folderPrefixOfKey(key); // guarda pasta para o shuffle
     setNow(name,key);
     audio.play(); setPlayIcon(true);
   }
