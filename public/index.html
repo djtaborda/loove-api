@@ -4,6 +4,19 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Loove • Music App</title>
+
+<!-- Marca a página antes do CSS (evita "piscar" e garante prioridade) -->
+<script>
+  (function(){
+    var path = (location.pathname || "").replace(/\/+$/,'');
+    var isHome = (path==="" || path==="/" || /\/index\.html$/i.test(path));
+    var isAss = /\/assinaturas\.html$/i.test(path);
+    var cls = isHome ? "pg-home" : "pg-interna";
+    if (isAss) cls += " pg-assinaturas";
+    document.documentElement.className += (document.documentElement.className?" ":"") + cls;
+  })();
+</script>
+
 <style>
   :root{
     --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
@@ -44,12 +57,37 @@
 
   /* ===== LOGO ===== */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  /* HOME (mantida): base e centralização */
-  .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45)); display:block; margin:0 auto;}
-  /* HOME - MOBILE (mantida, não mexer) */
-  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
-  /* HOME - DESKTOP (mantida: metade e centralizada) */
-  @media(min-width:601px){ .logo{ width:min(340px, 44%); } }
+  /* Base (Home mantida) */
+  .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
+  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } } /* Home mobile mantida */
+
+  /* >>> NOVO: Regras que resolvem de vez o problema <<< */
+
+  /* Internas (não-Home) — celular: metade e centralizada */
+  @media(max-width:600px){
+    .pg-interna .logo{
+      width:min(210px, 34vw) !important;   /* metade da regra base do mobile */
+      display:block !important;
+      margin:0 auto !important;
+    }
+  }
+
+  /* Página Assinaturas — desktop: metade e centralizada */
+  @media(min-width:601px){
+    .pg-assinaturas .logo{
+      width:min(340px, 44%) !important;    /* metade da largura base do desktop */
+      display:block !important;
+      margin:0 auto !important;
+    }
+  }
+  /* Página Assinaturas — celular: metade e centralizada (reforço) */
+  @media(max-width:600px){
+    .pg-assinaturas .logo{
+      width:min(210px, 34vw) !important;   /* mesma metade das internas */
+      display:block !important;
+      margin:0 auto !important;
+    }
+  }
 
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
@@ -303,7 +341,9 @@
 
   /* ===== Memória de reprodução ===== */
   const PLAYBACK_KEY = "loove_playback_v1";
-  function loadPlayback(){ try{ return JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "{}"); }catch{return {}} }
+  function loadPlayback(){
+    try{ return JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "{}"); }catch{return {}}
+  }
   function savePlayback(data){
     try{
       const state = Object.assign({}, loadPlayback(), data || {});
@@ -810,54 +850,6 @@
     }
     window.addEventListener("beforeunload", save);
     setInterval(save, 30000);
-  })();
-
-  /* ===== AJUSTES DE LOGO =====
-     1) Páginas que NÃO são a Home: reduzir pela metade no mobile.
-     2) /assinaturas.html: reduzir metade no mobile e no desktop + centralizar. */
-  (function adjustLogoSizes(){
-    const path = location.pathname.replace(/\/+$/,'');
-    const isHome = (path==="" || path==="/" || /\/index\.html$/i.test(path));
-    const head = document.head;
-
-    /* 1) Não-Home: mobile metade */
-    if(!isHome){
-      const st1 = document.createElement("style");
-      st1.textContent = `
-        @media(max-width:600px){
-          img.logo, .logo, picture .logo{
-            width:min(210px,34vw) !important;
-            display:block !important;
-            margin:0 auto !important;
-          }
-        }
-      `;
-      head.appendChild(st1);
-    }
-
-    /* 2) Página de Assinaturas */
-    if(/assinaturas\.html$/i.test(path)){
-      const st2 = document.createElement("style");
-      st2.textContent = `
-        /* desktop assinaturas: metade */
-        @media(min-width:601px){
-          img.logo, .logo, picture .logo{
-            width:min(340px,44%) !important;
-            display:block !important;
-            margin:0 auto !important;
-          }
-        }
-        /* celular assinaturas: metade */
-        @media(max-width:600px){
-          img.logo, .logo, picture .logo{
-            width:min(210px,34vw) !important;
-            display:block !important;
-            margin:0 auto !important;
-          }
-        }
-      `;
-      head.appendChild(st2);
-    }
   })();
 </script>
 </body>
