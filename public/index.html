@@ -158,6 +158,10 @@
   .menu-pop.open{display:block}
   .menu-pop .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-pop .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+
+  /* ===== NOVO: visor de página em tela cheia ===== */
+  #frameWrap{position:fixed; inset:0; background:var(--bg); z-index:12; display:none}
+  #frame{position:absolute; inset:0; width:100%; height:100%; border:0}
 </style>
 </head>
 <body>
@@ -236,12 +240,6 @@
       </div>
       <div id="favList"></div>
     </section>
-
-    <!-- NOVO: PÁGINAS INTERNAS -->
-    <section id="viewPage" class="card" style="display:none">
-      <div id="pageLoading" class="muted" style="padding:6px 2px">Carregando…</div>
-      <iframe id="pageFrame" title="Página interna" style="width:100%;height:72vh;border:0;border-radius:12px;background:#0c1117"></iframe>
-    </section>
   </div>
 
   <!-- LOGIN -->
@@ -295,6 +293,11 @@
     <audio id="audio" crossorigin="anonymous"></audio>
   </footer>
 
+  <!-- ===== NOVO: visor de página em tela cheia ===== -->
+  <div id="frameWrap" aria-hidden="true">
+    <iframe id="frame" title="Página" src=""></iframe>
+  </div>
+
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
@@ -302,20 +305,22 @@
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
 
-  /* ====== Router interno ====== */
-  const views = ["viewHome","viewList","viewFavs","viewPage"];
-  function showOnly(viewId){
-    views.forEach(v => { const n=el(v); if(n) n.style.display = (v===viewId? "": "none"); });
+  /* ====== Navegação tela cheia sem sair do app ====== */
+  function openFull(url){
+    const w = el("frameWrap"), f = el("frame");
+    if(!w || !f){ location.href = url; return; } // fallback
+    f.src = url;
+    w.style.display = "";
+    w.setAttribute("aria-hidden","false");
   }
-  function openInApp(url){
-    const frame = el("pageFrame"), loading = el("pageLoading");
-    if(!frame) return location.href = url; // fallback extremo
-    loading.style.display="";
-    frame.src = url;
-    showOnly("viewPage");
-    frame.onload = ()=> { loading.style.display="none"; };
+  function closeFull(){
+    const w = el("frameWrap"), f = el("frame");
+    if(!w || !f) return;
+    f.removeAttribute("src"); // libera recursos
+    w.style.display = "none";
+    w.setAttribute("aria-hidden","true");
   }
-  const goPremium = ()=> openInApp(PREMIUM_URL);
+  const goPremium = ()=> openFull(PREMIUM_URL);
 
   /* ===== SVGs ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
@@ -404,8 +409,7 @@
 
   async function goHome(){
     currentPrefix = "";
-    showOnly("viewHome");
-    await loadRootFolders();
+    hide("viewList"); hide("viewFavs"); show("viewHome");
   }
 
   async function loadRootFolders(){
@@ -462,7 +466,7 @@
         if(match){ enterFolder(match.prefix); }
         else{
           alert("Playlist premium específica não encontrada. Abrindo a seção premium para você escolher.");
-          openInApp(PREMIUM_URL); // abre DENTRO do app
+          openFull(PREMIUM_URL);
         }
       };
     });
@@ -474,9 +478,8 @@
 
   async function enterFolder(prefix){
     currentPrefix = prefix || ""; nextToken = null; items = [];
-    // Premium: abre a página de assinatura dentro do app
-    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ openInApp(PREMIUM_URL); return; }
-    showOnly("viewList");
+    hide("viewHome"); hide("viewFavs"); show("viewList");
+    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ openFull(PREMIUM_URL); return; }
     await loadSubfolders();
     await loadMore();
   }
@@ -618,7 +621,7 @@
   async function doSearch(){
     const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
-    showOnly("viewList");
+    hide("viewHome"); hide("viewFavs"); show("viewList");
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
   }
@@ -652,7 +655,7 @@
   pPlay.onclick = ()=>{ if(!audio.src) return; if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); } };
   pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
   pNext.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx<items.length-1) playKey(items[idx+1].key, items[idx+1].name); } };
-  pHome.onclick = goHome;
+  pHome.onclick = ()=>{ closeFull(); goHome(); };
   pSearch.onclick = ()=> el("q").focus();
   pShuffle.onclick = ()=>{ shuffleOn=!shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
   pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
@@ -691,16 +694,16 @@
     if(!act) return;
     closeMenu();
     switch(act){
-      case "home": goHome(); break;
-      case "account": openInApp("/conta.html"); break;          // abre DENTRO
+      case "home": closeFull(); goHome(); break;
+      case "account": openFull("/conta.html"); break;
       case "search": el("q").focus(); break;
-      case "playlists": openInApp("/playlists.html"); break;     // dentro
-      case "downloads": openInApp("/downloads.html"); break;     // dentro
-      case "favs": showOnly("viewFavs"); renderFavs(); break;
-      case "billing": goPremium(); break;                        // dentro
-      case "settings": openInApp("/configuracoes.html"); break;  // dentro
-      case "notify":   openInApp("/notificacoes.html"); break;   // dentro
-      case "help": openInApp("/ajuda.html"); break;              // dentro
+      case "playlists": openFull("/playlists.html"); break;
+      case "downloads": openFull("/downloads.html"); break;
+      case "favs": closeFull(); hide("viewHome"); hide("viewList"); show("viewFavs"); renderFavs(); break;
+      case "billing": goPremium(); break;
+      case "settings": openFull("/configuracoes.html"); break;
+      case "notify":   openFull("/notificacoes.html"); break;
+      case "help": openFull("/ajuda.html"); break;
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
@@ -724,7 +727,8 @@
   el("btnFavPlayAll").onclick = ()=>{
     const f = favs(); if(!f.length) return;
     items = f.map(k=>({ key:k, name:k.split("/").pop() }));
-    showOnly("viewList");
+    closeFull();
+    hide("viewHome"); hide("viewFavs"); show("viewList");
     renderList();
     playKey(items[0].key, items[0].name);
   };
@@ -735,6 +739,7 @@
       setFlatIcons();
       await loadPremiumFolders();
       await goHome();
+      await loadRootFolders();
     }
   }
   ensureAuthAndLoad();
