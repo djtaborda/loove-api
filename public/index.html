@@ -1,22 +1,9 @@
-<!doctype html>
+<!doctype html> 
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Loove • Music App</title>
-
-<!-- Marca a página antes do CSS (evita "piscar" e garante prioridade) -->
-<script>
-  (function(){
-    var path = (location.pathname || "").replace(/\/+$/,'');
-    var isHome = (path==="" || path==="/" || /\/index\.html$/i.test(path));
-    var isAss = /\/assinaturas\.html$/i.test(path);
-    var cls = isHome ? "pg-home" : "pg-interna";
-    if (isAss) cls += " pg-assinaturas";
-    document.documentElement.className += (document.documentElement.className?" ":"") + cls;
-  })();
-</script>
-
 <style>
   :root{
     --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
@@ -55,40 +42,10 @@
   .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
 
-  /* ===== LOGO ===== */
+  /* logo */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  /* Base (Home mantida) */
   .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
-  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } } /* Home mobile mantida */
-
-  /* >>> NOVO: Regras que resolvem de vez o problema <<< */
-
-  /* Internas (não-Home) — celular: metade e centralizada */
-  @media(max-width:600px){
-    .pg-interna .logo{
-      width:min(210px, 34vw) !important;   /* metade da regra base do mobile */
-      display:block !important;
-      margin:0 auto !important;
-    }
-  }
-
-  /* Página Assinaturas — desktop: metade e centralizada */
-  @media(min-width:601px){
-    .pg-assinaturas .logo{
-      width:min(340px, 44%) !important;    /* metade da largura base do desktop */
-      display:block !important;
-      margin:0 auto !important;
-    }
-  }
-  /* Página Assinaturas — celular: metade e centralizada (reforço) */
-  @media(max-width:600px){
-    .pg-assinaturas .logo{
-      width:min(210px, 34vw) !important;   /* mesma metade das internas */
-      display:block !important;
-      margin:0 auto !important;
-    }
-  }
-
+  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
   /* busca */
@@ -122,6 +79,7 @@
     border-radius:16px; padding:10px 8px 10px 10px; margin:6px 0;
     box-shadow:0 3px 12px rgba(0,0,0,.14)
   }
+  /* compactação para caber ~10 no mobile */
   .t-left{display:grid; place-items:center}
   .t-play{
     width:40px; height:40px; border-radius:999px;
@@ -200,6 +158,22 @@
   .menu-pop.open{display:block}
   .menu-pop .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-pop .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+
+  /* ====== MINHAS PLAYLISTS (NOVO) ====== */
+  .pl-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0 8px}
+  .pl-grid{display:grid; gap:12px; margin-top:8px}
+  @media(min-width:1024px){ .pl-grid{grid-template-columns: repeat(4, 1fr);} }
+  @media(min-width:740px) and (max-width:1023px){ .pl-grid{grid-template-columns: repeat(3, 1fr);} }
+  @media(max-width:739px){ .pl-grid{grid-template-columns: repeat(2, 1fr);} }
+
+  .pl-item{
+    min-height:92px; padding:10px; border-radius:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    background:#000000; color:#ffffff; font-weight:900; font-size:18px; text-transform:uppercase;
+    border:2px solid #ff9f1a; box-shadow:0 6px 20px rgba(255,140,0,.20); position:relative
+  }
+  .pl-item::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.95; color:#ffffff }
+
 </style>
 </head>
 <body>
@@ -278,6 +252,16 @@
       </div>
       <div id="favList"></div>
     </section>
+
+    <!-- ====== MINHAS PLAYLISTS (NOVO) ====== -->
+    <section id="viewPlaylists" class="card" style="display:none">
+      <div class="pl-head">
+        <h3 style="margin:0">Minhas playlists</h3>
+        <button id="btnCreatePl" class="btn btn-primary">+ Criar playlist</button>
+      </div>
+      <div id="myPlGrid" class="pl-grid"></div>
+    </section>
+
   </div>
 
   <!-- LOGIN -->
@@ -334,12 +318,13 @@
 <script>
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
+  const PLAYLISTS_KEY = "loove_user_playlists_v1"; // NOVO
   const PREMIUM_PREFIX = "PREMIUM/";
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
   const goPremium = ()=> location.href = PREMIUM_URL;
 
-  /* ===== Memória de reprodução ===== */
+  /* ===== NOVO: Memória de reprodução ===== */
   const PLAYBACK_KEY = "loove_playback_v1";
   function loadPlayback(){
     try{ return JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "{}"); }catch{return {}}
@@ -397,7 +382,7 @@
     el("miHome").innerHTML      = icoHome()     + ' Início';
     el("miAccount").innerHTML   = icoAccount()  + ' Conta';
     el("miSearch").innerHTML    = icoSearch()   + ' Buscar';
-    el("miPlaylists").innerHTML = icoPlaylist() + ' Playlists';
+    el("miPlaylists").innerHTML = icoPlaylist() + ' Minhas playlists'; /* rótulo atualizado */
     el("miDowns").innerHTML     = icoDownload() + ' Downloads';
     el("miFavs").innerHTML      = icoStar()     + ' Favoritos';
     el("miBilling").innerHTML   = icoCard()     + ' Assinatura';
@@ -446,7 +431,7 @@
 
   async function goHome(){
     currentPrefix = "";
-    hide("viewList"); hide("viewFavs"); show("viewHome");
+    hide("viewList"); hide("viewFavs"); hide("viewPlaylists"); show("viewHome");
     await loadRootFolders();
   }
 
@@ -516,7 +501,7 @@
 
   async function enterFolder(prefix){
     currentPrefix = prefix || ""; nextToken = null; items = [];
-    hide("viewHome"); hide("viewFavs"); show("viewList");
+    hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
     el("list").innerHTML = "";
     if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
     await loadSubfolders();
@@ -660,7 +645,7 @@
   async function doSearch(){
     const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
-    hide("viewHome"); hide("viewFavs"); show("viewList");
+    hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
   }
@@ -717,10 +702,11 @@
     const d = await api("/api/stream?key="+encodeURIComponent(key));
     audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
     audio.play(); setPlayIcon(true);
+    /* NOVO: salvar imediatamente que estamos tocando esta faixa */
     savePlayback({ key, name, pos: 0, playing: true });
   }
 
-  /* salvar progresso com throttle (~3s) */
+  /* ===== NOVO: salvar progresso com throttle (a cada ~3s) ===== */
   const saveProgressThrottled = throttle(()=>{
     if(!currentKey) return;
     savePlayback({
@@ -753,9 +739,9 @@
       case "home": goHome(); break;
       case "account": location.href = "/conta.html"; break;
       case "search": el("q").focus(); break;
-      case "playlists": location.href = "/playlists.html"; break;
+      case "playlists": openMyPlaylists(); break; // NOVO: abre a tela interna
       case "downloads": location.href = "/downloads.html"; break;
-      case "favs": renderFavs(); hide("viewHome"); hide("viewList"); show("viewFavs"); break;
+      case "favs": renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs"); break;
       case "billing": goPremium(); break;
       case "settings": location.href = "/configuracoes.html"; break;
       case "notify":   location.href = "/notificacoes.html"; break;
@@ -783,24 +769,82 @@
   el("btnFavPlayAll").onclick = ()=>{
     const f = favs(); if(!f.length) return;
     items = f.map(k=>({ key:k, name:k.split("/").pop() }));
-    show("viewList"); hide("viewHome"); hide("viewFavs");
+    show("viewList"); hide("viewHome"); hide("viewFavs"); hide("viewPlaylists");
     renderList();
     playKey(items[0].key, items[0].name);
   };
 
-  /* ===== Retomar reprodução salva ===== */
+  /* ===== NOVO: MINHAS PLAYLISTS (persistência local) ===== */
+  function loadUserPlaylists(){
+    try{ return JSON.parse(localStorage.getItem(PLAYLISTS_KEY)||"[]"); }catch{ return []; }
+  }
+  function saveUserPlaylists(arr){
+    localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(arr||[]));
+  }
+
+  function openMyPlaylists(){
+    hide("viewHome"); hide("viewList"); hide("viewFavs"); show("viewPlaylists");
+    renderMyPlaylists();
+  }
+
+  function renderMyPlaylists(){
+    const grid = el("myPlGrid");
+    const pls = loadUserPlaylists();
+    grid.innerHTML = "";
+    if(!pls.length){
+      grid.innerHTML = `<div class="muted">Você ainda não criou nenhuma playlist.</div>`;
+      return;
+    }
+    pls.forEach(p=>{
+      const b = document.createElement("button");
+      b.className = "pl-item";
+      b.textContent = p.name || "Playlist";
+      b.title = `${p.name} (${(p.tracks||[]).length} músicas)`;
+      b.onclick = ()=> openPlaylist(p.id);
+      grid.appendChild(b);
+    });
+  }
+
+  function createPlaylist(){
+    const name = prompt("Nome da playlist:");
+    if(!name) return;
+    const pls = loadUserPlaylists();
+    const id = slug(name) + "-" + Date.now().toString(36);
+    pls.push({ id, name: name.trim(), tracks: [], createdAt: Date.now() });
+    saveUserPlaylists(pls);
+    renderMyPlaylists();
+  }
+  el("btnCreatePl").addEventListener("click", createPlaylist);
+
+  /* Abrir playlist -> lista de músicas dela usando viewList */
+  function openPlaylist(plId){
+    const pls = loadUserPlaylists();
+    const pl = pls.find(p=>p.id===plId);
+    if(!pl){ alert("Playlist não encontrada."); return; }
+    const tr = (pl.tracks||[]);
+    items = tr.map(k=>({ key:k, name:k.split("/").pop() }));
+    hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
+    renderList();
+    if(!items.length){
+      el("list").innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Esta playlist está vazia.</li>`;
+    }
+  }
+
+  /* ===== NOVO: Tentar retomar a reprodução salva no localStorage ===== */
   async function tryResumePlayback(){
     const st = loadPlayback();
     const savedKey = st?.key;
     const savedName = st?.name;
     const savedPos = Number(st?.pos || 0);
     const shouldPlay = !!st?.playing;
-    if(!savedKey) return;
+
+    if(!savedKey) return; // nada salvo
 
     try{
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
       audio.src = d.url;
-      currentKey = savedKey;
+      let currentKeyLocal = savedKey;
+      currentKey = currentKeyLocal;
       currentName = savedName || savedKey.split("/").pop();
       setNow(currentName, currentKey);
 
