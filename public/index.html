@@ -63,7 +63,7 @@
   .muted{color:#9aa4b2}
   .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px}
 
-  /* grid de pastas */
+  /* grid de pastas (home e subpastas) */
   .grid{display:grid; gap:12px; margin-top:10px}
   @media(min-width:1024px){ .grid{grid-template-columns: repeat(4, 1fr);} }
   @media(min-width:740px) and (max-width:1023px){ .grid{grid-template-columns: repeat(3, 1fr);} }
@@ -110,7 +110,7 @@
   .t-menu .menu-item.premium:hover{filter:brightness(1.05)}
 
   .loadmore-wrap{display:flex; justify-content:center; margin:14px 0 4px}
-  .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:var(--text); padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:700}
+  .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:#e6ecf2; padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:700}
   .btn:hover{transform:translateY(-1px)}
   .btn-primary{border:none; background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14}
 
@@ -204,6 +204,11 @@
 
     <!-- LISTA -->
     <section id="viewList" class="card" style="display:none">
+      <!-- SUBPASTAS (novidade) -->
+      <div id="subfoldersWrap" style="display:none; margin-bottom:8px">
+        <div class="grid" id="subfoldersGrid"></div>
+      </div>
+
       <ul id="list" class="list"></ul>
       <div class="loadmore-wrap">
         <button id="btnMore" class="btn">Carregar mais</button>
@@ -326,7 +331,6 @@
     el("miHelp").innerHTML      = icoHelp()     + ' Ajuda';
     el("miLogout").innerHTML    = icoLogout()   + ' Sair';
 
-    // lupa no campo de busca
     el("searchIco").innerHTML = icoSearch();
   }
 
@@ -365,11 +369,10 @@
     }catch(e){ el("msg").textContent = e?.error || "Falha no login"; }
   });
 
-  /* HOME de verdade (grade de pastas) */
   async function goHome(){
     currentPrefix = "";
     hide("viewList"); hide("viewFavs"); show("viewHome");
-    await loadRootFolders(); // não mexe no <audio>, não para a música
+    await loadRootFolders();
   }
 
   async function loadRootFolders(){
@@ -440,9 +443,33 @@
     currentPrefix = prefix || ""; nextToken = null; items = [];
     hide("viewHome"); hide("viewFavs"); show("viewList");
     el("list").innerHTML = "";
+    // premium abre página de assinatura
     if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
+    // carregar subpastas + músicas
+    await loadSubfolders();
     await loadMore();
   }
+
+  /* ====== SUBPASTAS COMO QUADRADOS ====== */
+  async function loadSubfolders(){
+    const wrap = el("subfoldersWrap");
+    const grid = el("subfoldersGrid");
+    grid.innerHTML = ""; wrap.style.display = "none";
+    try{
+      const d = await api("/api/folders?prefix="+encodeURIComponent(currentPrefix));
+      const subs = (d.folders||[]).filter(f => (f.prefix||"") !== currentPrefix);
+      if(!subs.length) return;
+      subs.forEach(f=>{
+        const btn = document.createElement("button");
+        btn.className = "folderBtn";
+        btn.textContent = (f.name||f.prefix||"").replace(/\/$/,"");
+        btn.onclick = ()=> enterFolder(f.prefix);
+        grid.appendChild(btn);
+      });
+      wrap.style.display = "";
+    }catch(e){ /* ignora */ }
+  }
+
   async function loadMore(){
     const url = "/api/list?prefix="+encodeURIComponent(currentPrefix) + (nextToken ? "&token="+encodeURIComponent(nextToken) : "");
     const d = await api(url);
@@ -454,7 +481,6 @@
 
   function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
-  function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
   /* ===== renderização da lista (sem duração) ===== */
   function renderList(){
@@ -510,7 +536,6 @@
         <button class="menu-item premium miAddPl">Adicionar na Playlist (Premium)</button>
       `;
 
-      // toggle que fecha se clicar novamente no mesmo ⋯
       keb.onclick = (e)=>{
         e.stopPropagation();
         const wasOpen = menu.classList.contains("open");
@@ -546,7 +571,6 @@
   }
 
   function closeAllItemMenus(){ document.querySelectorAll(".t-menu.open").forEach(m=>m.classList.remove("open")); }
-  // um único listener global para fechar quando clicar fora
   document.addEventListener("click",(ev)=>{
     if(!ev.target.closest(".t-menu") && !ev.target.closest(".t-kebab")){
       closeAllItemMenus();
@@ -597,10 +621,7 @@
   pPlay.onclick = ()=>{ if(!audio.src) return; if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); } };
   pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
   pNext.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx<items.length-1) playKey(items[idx+1].key, items[idx+1].name); } };
-
-  /* Ir para Home real (não pausa áudio) */
   pHome.onclick = goHome;
-
   pSearch.onclick = ()=> el("q").focus();
   pShuffle.onclick = ()=>{ shuffleOn=!shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
   pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
@@ -637,7 +658,7 @@
     if(!(e.target instanceof HTMLElement)) return;
     const act = e.target.getAttribute("data-act") || e.target.parentElement?.getAttribute("data-act");
     if(!act) return;
-    closeMenu(); // não mexe no áudio
+    closeMenu();
     switch(act){
       case "home": goHome(); break;
       case "account": location.href = "/conta.html"; break;
