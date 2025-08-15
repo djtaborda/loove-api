@@ -44,8 +44,10 @@
 
   /* logo */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
+  /* DESKTOP: 50% menor */
   .logo{width:min(340px, 44%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
-  @media(max-width:600px){ .logo{ width:min(210px, 34vw); } }
+  /* MOBILE: mantido como estava (não mexer) */
+  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
   /* busca */
@@ -816,6 +818,20 @@
     }
     window.addEventListener("beforeunload", save);
     setInterval(save, 30000);
+  })();
+
+  /* ===== AJUSTE ESPECÍFICO: página de Assinaturas =====
+     Se a URL atual for /assinaturas.html, reduz a logo 50% no desktop E no celular,
+     sem mexer nas demais páginas. */
+  (function adjustLogoOnBilling(){
+    const isAssinaturas = /\/assinaturas\.html(\?|$)/.test(location.pathname) || location.pathname.includes("assinaturas");
+    if(!isAssinaturas) return;
+    const st = document.createElement("style");
+    st.textContent = `
+      .logo{width:min(340px,44%)}
+      @media(max-width:600px){ .logo{ width:min(210px,34vw); } }
+    `;
+    document.head.appendChild(st);
   })();
 </script>
 </body>
