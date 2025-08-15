@@ -42,12 +42,15 @@
   .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
 
-  /* logo */
+  /* ===== LOGO ===== */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  /* DESKTOP: 50% menor */
-  .logo{width:min(340px, 44%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
-  /* MOBILE: mantido como estava (não mexer) */
+  /* tamanho "original" base */
+  .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45)); display:block; margin:0 auto;}
+  /* MOBILE (mantido como estava – não mexer) */
   @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
+  /* DESKTOP: reduzir pela metade (sem afetar o mobile) */
+  @media(min-width:601px){ .logo{ width:min(340px, 44%); } }
+
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
   /* busca */
@@ -299,11 +302,9 @@
   const el = id => document.getElementById(id);
   const goPremium = ()=> location.href = PREMIUM_URL;
 
-  /* ===== NOVO: Memória de reprodução ===== */
+  /* ===== Memória de reprodução ===== */
   const PLAYBACK_KEY = "loove_playback_v1";
-  function loadPlayback(){
-    try{ return JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "{}"); }catch{return {}}
-  }
+  function loadPlayback(){ try{ return JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "{}"); }catch{return {}} }
   function savePlayback(data){
     try{
       const state = Object.assign({}, loadPlayback(), data || {});
@@ -330,7 +331,6 @@
   function icoRepeat(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M17 1l3 3-3 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 11V8a3 3 0 0 1 3-3h13' stroke-width='2.2' stroke-linecap='round'/><path d='M7 23l-3-3 3-3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 13v3a3 3 0 0 1-3 3H4' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoVolume(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M4 10v4h4l6 5V5l-6 5H4z' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/><path d='M18 9a3 3 0 0 1 0 6M20 7a6 6 0 0 1 0 10' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoHeart(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.7-9.5-8A5.6 5.6 0 0 1 12 6a5.6 5.6 0 0 1 9.5 7c-2.5 3.3-9.5 8-9.5 8Z" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
-  /* Kebab VERTICAL (⋮) */
   function icoKebab(){return `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/><circle cx="12" cy="19" r="2" stroke-width="2"/></svg>`}
   function icoUser(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2.2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2.2" stroke-linecap="round"/></svg>`}
   function icoAccount(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2" stroke-linecap="round"/></svg>`}
@@ -678,11 +678,10 @@
     const d = await api("/api/stream?key="+encodeURIComponent(key));
     audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
     audio.play(); setPlayIcon(true);
-    /* NOVO: salvar imediatamente que estamos tocando esta faixa */
     savePlayback({ key, name, pos: 0, playing: true });
   }
 
-  /* ===== NOVO: salvar progresso com throttle (a cada ~3s) ===== */
+  /* salvar progresso com throttle (~3s) */
   const saveProgressThrottled = throttle(()=>{
     if(!currentKey) return;
     savePlayback({
@@ -750,28 +749,24 @@
     playKey(items[0].key, items[0].name);
   };
 
-  /* ===== NOVO: Tentar retomar a reprodução salva no localStorage ===== */
+  /* ===== Retomar reprodução salva ===== */
   async function tryResumePlayback(){
     const st = loadPlayback();
     const savedKey = st?.key;
     const savedName = st?.name;
     const savedPos = Number(st?.pos || 0);
     const shouldPlay = !!st?.playing;
-
-    if(!savedKey) return; // nada salvo
+    if(!savedKey) return;
 
     try{
-      // Pede uma URL nova (caso a anterior tenha expirado)
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
       audio.src = d.url;
       currentKey = savedKey;
       currentName = savedName || savedKey.split("/").pop();
       setNow(currentName, currentKey);
 
-      // Quando os metadados carregarem, reposiciona e decide tocar/pausar
       audio.addEventListener("loadedmetadata", function onMeta(){
         audio.removeEventListener("loadedmetadata", onMeta);
-        // Garante que não passa do final
         const dur = audio.duration || 0;
         const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
         if(target > 0) audio.currentTime = target;
@@ -783,7 +778,6 @@
         }
       });
     }catch(e){
-      // Se falhar, limpamos o estado antigo para evitar loops
       clearPlayback();
     }
   }
@@ -794,7 +788,6 @@
       setFlatIcons();
       await loadPremiumFolders();
       await goHome();
-      // NOVO: tenta retomar após carregar a home
       await tryResumePlayback();
     }
   }
@@ -820,16 +813,18 @@
     setInterval(save, 30000);
   })();
 
-  /* ===== AJUSTE ESPECÍFICO: página de Assinaturas =====
-     Se a URL atual for /assinaturas.html, reduz a logo 50% no desktop E no celular,
-     sem mexer nas demais páginas. */
+  /* ===== AJUSTE ESPECÍFICO PARA /assinaturas.html =====
+     Aplica redução de 50% no desktop e no celular SOMENTE nessa página. */
   (function adjustLogoOnBilling(){
-    const isAssinaturas = /\/assinaturas\.html(\?|$)/.test(location.pathname) || location.pathname.includes("assinaturas");
+    const isAssinaturas = /assinaturas\.html/i.test(location.pathname);
     if(!isAssinaturas) return;
     const st = document.createElement("style");
     st.textContent = `
-      .logo{width:min(340px,44%)}
-      @media(max-width:600px){ .logo{ width:min(210px,34vw); } }
+      /* desktop assinaturas: 50% */
+      @media(min-width:601px){ .logo{ width:min(340px,44%) !important; } }
+      /* celular assinaturas: 50% do que era */
+      @media(max-width:600px){ .logo{ width:min(210px,34vw) !important; } }
+      .logo{ display:block; margin:0 auto !important; }
     `;
     document.head.appendChild(st);
   })();
