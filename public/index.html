@@ -159,7 +159,7 @@
   .menu-pop .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
   .menu-pop .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
 
-  /* ===== NOVO: visor de página em tela cheia ===== */
+  /* ===== Visor de página em tela cheia ===== */
   #frameWrap{position:fixed; inset:0; background:var(--bg); z-index:12; display:none}
   #frame{position:absolute; inset:0; width:100%; height:100%; border:0}
 </style>
@@ -293,7 +293,7 @@
     <audio id="audio" crossorigin="anonymous"></audio>
   </footer>
 
-  <!-- ===== NOVO: visor de página em tela cheia ===== -->
+  <!-- Visor de página em tela cheia -->
   <div id="frameWrap" aria-hidden="true">
     <iframe id="frame" title="Página" src=""></iframe>
   </div>
@@ -305,10 +305,11 @@
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
 
-  /* ====== Navegação tela cheia sem sair do app ====== */
+  /* ===== Tela cheia dentro do app ===== */
   function openFull(url){
     const w = el("frameWrap"), f = el("frame");
-    if(!w || !f){ location.href = url; return; } // fallback
+    try{ closeMenu(); }catch{}
+    if(!w || !f){ location.href = url; return; }
     f.src = url;
     w.style.display = "";
     w.setAttribute("aria-hidden","false");
@@ -316,7 +317,7 @@
   function closeFull(){
     const w = el("frameWrap"), f = el("frame");
     if(!w || !f) return;
-    f.removeAttribute("src"); // libera recursos
+    f.removeAttribute("src");
     w.style.display = "none";
     w.setAttribute("aria-hidden","true");
   }
@@ -688,22 +689,23 @@
   backdrop.addEventListener("click", closeMenu);
   document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeMenu(); });
 
+  /* >>> CORREÇÃO AQUI: usar closest('[data-act]') <<< */
   userMenu.addEventListener("click", (e)=>{
-    if(!(e.target instanceof HTMLElement)) return;
-    const act = e.target.getAttribute("data-act") || e.target.parentElement?.getAttribute("data-act");
-    if(!act) return;
+    const btn = e.target.closest('[data-act]');
+    if(!btn) return;
+    const act = btn.getAttribute('data-act');
     closeMenu();
     switch(act){
       case "home": closeFull(); goHome(); break;
       case "account": openFull("/conta.html"); break;
-      case "search": el("q").focus(); break;
+      case "search": document.getElementById("q").focus(); break;
       case "playlists": openFull("/playlists.html"); break;
       case "downloads": openFull("/downloads.html"); break;
       case "favs": closeFull(); hide("viewHome"); hide("viewList"); show("viewFavs"); renderFavs(); break;
       case "billing": goPremium(); break;
       case "settings": openFull("/configuracoes.html"); break;
       case "notify":   openFull("/notificacoes.html"); break;
-      case "help": openFull("/ajuda.html"); break;
+      case "help":     openFull("/ajuda.html"); break;
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
