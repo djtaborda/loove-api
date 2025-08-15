@@ -44,11 +44,11 @@
 
   /* ===== LOGO ===== */
   .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  /* tamanho "original" base */
+  /* HOME (mantida): base e centralização */
   .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45)); display:block; margin:0 auto;}
-  /* MOBILE (mantido como estava – não mexer) */
+  /* HOME - MOBILE (mantida, não mexer) */
   @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
-  /* DESKTOP: reduzir pela metade (sem afetar o mobile) */
+  /* HOME - DESKTOP (mantida: metade e centralizada) */
   @media(min-width:601px){ .logo{ width:min(340px, 44%); } }
 
   .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
@@ -84,7 +84,6 @@
     border-radius:16px; padding:10px 8px 10px 10px; margin:6px 0;
     box-shadow:0 3px 12px rgba(0,0,0,.14)
   }
-  /* compactação para caber ~10 no mobile */
   .t-left{display:grid; place-items:center}
   .t-play{
     width:40px; height:40px; border-radius:999px;
@@ -813,20 +812,52 @@
     setInterval(save, 30000);
   })();
 
-  /* ===== AJUSTE ESPECÍFICO PARA /assinaturas.html =====
-     Aplica redução de 50% no desktop e no celular SOMENTE nessa página. */
-  (function adjustLogoOnBilling(){
-    const isAssinaturas = /assinaturas\.html/i.test(location.pathname);
-    if(!isAssinaturas) return;
-    const st = document.createElement("style");
-    st.textContent = `
-      /* desktop assinaturas: 50% */
-      @media(min-width:601px){ .logo{ width:min(340px,44%) !important; } }
-      /* celular assinaturas: 50% do que era */
-      @media(max-width:600px){ .logo{ width:min(210px,34vw) !important; } }
-      .logo{ display:block; margin:0 auto !important; }
-    `;
-    document.head.appendChild(st);
+  /* ===== AJUSTES DE LOGO =====
+     1) Páginas que NÃO são a Home: reduzir pela metade no mobile.
+     2) /assinaturas.html: reduzir metade no mobile e no desktop + centralizar. */
+  (function adjustLogoSizes(){
+    const path = location.pathname.replace(/\/+$/,'');
+    const isHome = (path==="" || path==="/" || /\/index\.html$/i.test(path));
+    const head = document.head;
+
+    /* 1) Não-Home: mobile metade */
+    if(!isHome){
+      const st1 = document.createElement("style");
+      st1.textContent = `
+        @media(max-width:600px){
+          img.logo, .logo, picture .logo{
+            width:min(210px,34vw) !important;
+            display:block !important;
+            margin:0 auto !important;
+          }
+        }
+      `;
+      head.appendChild(st1);
+    }
+
+    /* 2) Página de Assinaturas */
+    if(/assinaturas\.html$/i.test(path)){
+      const st2 = document.createElement("style");
+      st2.textContent = `
+        /* desktop assinaturas: metade */
+        @media(min-width:601px){
+          img.logo, .logo, picture .logo{
+            width:min(340px,44%) !important;
+            display:block !important;
+            margin:0 auto !important;
+          }
+        }
+        /* celular assinaturas: metade */
+        @media(max-width:600px){
+          img.logo, .logo, picture .logo{
+            width:min(210px,34vw) !important;
+            display:block !important;
+            margin:0 auto !important;
+          }
+        }
+      `;
+      head.appendChild(st2);
+    }
   })();
 </script>
 </body>
