@@ -57,8 +57,8 @@
 
   /* chips premium */
   .chips{display:flex; gap:10px; flex-wrap:wrap; margin:10px auto 14px; justify-content:center}
-  .chip-premium{background:#0d1320; color:var(--text); border:2px solid var(--amber-3); padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px; box-shadow:0 4px 16px rgba(255,140,0,.15)}
-  .chip-premium:hover{ box-shadow:0 0 0 2px rgba(255,140,0,.35), 0 8px 20px rgba(255,140,0,.25); transform:translateY(-1px) }
+  .chip-premium{background:#0d1320; color:var(--text); border:2px solid var(--amber-3); padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px; box-shadow: 0 4px 16px rgba(255,140,0,.15)}
+  .chip-premium:hover{ box-shadow: 0 0 0 2px rgba(255,140,0,.35), 0 8px 20px rgba(255,140,0,.25); transform:translateY(-1px) }
 
   .muted{color:#9aa4b2}
   .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px}
@@ -68,7 +68,7 @@
   @media(min-width:1024px){ .grid{grid-template-columns: repeat(4, 1fr);} }
   @media(min-width:740px) and (max-width:1023px){ .grid{grid-template-columns: repeat(3, 1fr);} }
   @media(max-width:739px){ .grid{grid-template-columns: repeat(2, 1fr);} }
-  .folderBtn{display:flex; align-items:center; justify-content:center; text-align:center; min-height:92px; padding:10px; border-radius:18px; cursor:pointer; background:linear-gradient(180deg, var(--amber-2), var(--amber-3)); color:#0b0f14; font-weight:900; font-size:20px; text-transform:uppercase; border:2px solid #ffcc6b; box-shadow:0 6px 20px rgba(255,140,0,.25); position:relative}
+  .folderBtn{display:flex; align-items:center; justify-content:center; text-align:center; min-height:92px; padding:10px; border-radius:18px; cursor:pointer; background:linear-gradient(180deg, var(--amber-2), var(--amber-3)); color:#0b0f14; font-weight:900; font-size:20px; text-transform:uppercase; border:2px solid #ffcc6b; box-shadow: 0 6px 20px rgba(255,140,0,.25); position:relative}
   .folderBtn::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.9; }
 
   /* ===== LISTA ===== */
@@ -164,17 +164,25 @@
   @media(min-width:1024px){ .pl-grid{grid-template-columns: repeat(4, 1fr);} }
   @media(min-width:740px) and (max-width:1023px){ .pl-grid{grid-template-columns: repeat(3, 1fr);} }
   @media(max-width:739px){ .pl-grid{grid-template-columns: repeat(2, 1fr);} }
+
+  /* NOVO ESTILO: fundo cinza escuro, texto laranja neon e bordas neon */
   .pl-item{
     min-height:92px; padding:10px; border-radius:18px; cursor:pointer;
     display:flex; align-items:center; justify-content:center; text-align:center;
-    background:#000000; color:#ffffff; font-weight:900; font-size:18px; text-transform:uppercase;
-    border:2px solid #ff9f1a; box-shadow:0 6px 20px rgba(255,140,0,.20); position:relative;
-    background-size:cover; background-position:center; text-shadow:0 2px 10px rgba(0,0,0,.5);
+    background:#1a1f27; /* cinza escuro */
+    color:#ff9f1a;      /* laranja neon */
+    font-weight:900; font-size:18px; text-transform:uppercase;
+    border:2px solid #ff9f1a; 
+    box-shadow:
+      0 0 10px rgba(255,159,26,.45),
+      0 4px 18px rgba(255,159,26,.25);
+    text-shadow:0 0 8px rgba(255,159,26,.35);
+    position:relative;
   }
-  .pl-item::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.95; color:#ffffff }
+  .pl-item::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.95; color:#ffb02e }
   .pl-dot{
     position:absolute; top:6px; right:34px; width:28px; height:28px; display:grid; place-items:center;
-    background:transparent; border:none; cursor:pointer; color:#fff; opacity:.9
+    background:transparent; border:none; cursor:pointer; color:#ffcf8a; opacity:.95
   }
   .pl-menu{
     position:absolute; right:8px; top:34px; background:#0f1720; border:1px solid rgba(255,255,255,.12);
@@ -357,7 +365,7 @@
   function clearPlayback(){ localStorage.removeItem(PLAYBACK_KEY); }
   function throttle(fn, ms){ let last=0; return (...a)=>{ const n=Date.now(); if(n-last>=ms){ last=n; fn.apply(this,a);} } }
 
-  /* ===== SVGs (INCLUINDO icoSettings CORRIGIDO) ===== */
+  /* ===== SVGs ===== */
   function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
   function icoSearch(){return `<svg viewBox='0 0 24 24' fill='none'><circle cx='11' cy='11' r='7' stroke-width='2.2'/><path d='M20 20l-3.5-3.5' stroke-width='2.2' stroke-linecap='round'/></svg>`}
   function icoPrev(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M11 6l-7 6 7 6V6zM20 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
@@ -785,25 +793,19 @@
   function loadUserPlaylists(){ try{ return JSON.parse(localStorage.getItem(PLAYLISTS_KEY)||"[]"); }catch{ return []; } }
   function saveUserPlaylists(arr){ localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(arr||[])); }
 
-  function coverFor(name, seed){
-    const c=document.createElement("canvas"); c.width=300; c.height=300;
-    const ctx=c.getContext("2d");
-    ctx.fillStyle="#000"; ctx.fillRect(0,0,300,300);
-    const n = (seed||0)%1000; const r1=60+(n%30), r2=40+((n*3)%30), r3=30+((n*7)%25);
-    ctx.globalAlpha=0.25; ctx.fillStyle="#ff9f1a"; ctx.beginPath(); ctx.arc(90,90,r1,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#ff7a00"; ctx.beginPath(); ctx.arc(220,110,r2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#ffb02e"; ctx.beginPath(); ctx.arc(160,210,r3,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1;
-    const parts=(name||"PL").split(/\s+/).filter(Boolean); const initials=(parts[0]?.[0]||"P")+(parts[1]?.[0]||"L");
-    ctx.fillStyle="#ffffff"; ctx.font="bold 140px Inter, Arial, sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
-    ctx.fillText(initials.toUpperCase(),150,160);
-    return c.toDataURL();
-  }
-
   function openMyPlaylists(){
     hide("viewHome"); hide("viewList"); hide("viewFavs"); show("viewPlaylists");
     renderMyPlaylists();
   }
+
+  /* NOVO: botão “Criar playlist” na própria tela */
+  el("btnCreatePl").onclick = ()=>{
+    const n = prompt("Nome da nova playlist:");
+    if(!n) return;
+    createPlaylistInternal(n.trim());
+    renderMyPlaylists();
+    alert("Playlist criada!");
+  };
 
   function renderMyPlaylists(){
     const grid = el("myPlGrid");
@@ -816,10 +818,10 @@
     pls.forEach(p=>{
       const b = document.createElement("button");
       b.className = "pl-item";
-      b.textContent = p.name || "Playlist";
+      b.textContent = p.name || "Playlist";       /* só o nome, sem letras grandes/cover */
       b.title = `${p.name} (${(p.tracks||[]).length} músicas)`;
-      try{ b.style.backgroundImage = `url('${coverFor(p.name, (p.createdAt||0)%100000)}')`; }catch{}
       b.onclick = ()=> openPlaylist(p.id);
+
       const dot = document.createElement("button"); dot.className="pl-dot"; dot.innerHTML="⋯";
       const menu = document.createElement("div"); menu.className="pl-menu";
       const rBtn = document.createElement("button"); rBtn.textContent="Renomear";
@@ -828,6 +830,7 @@
       dBtn.onclick = (ev)=>{ ev.stopPropagation(); menu.classList.remove("open"); deletePlaylist(p.id); };
       menu.appendChild(rBtn); menu.appendChild(dBtn);
       dot.onclick = (ev)=>{ ev.stopPropagation(); document.querySelectorAll(".pl-menu.open").forEach(x=>x.classList.remove("open")); menu.classList.toggle("open"); };
+
       b.appendChild(dot); b.appendChild(menu);
       document.addEventListener("click",(ev)=>{ if(!b.contains(ev.target)) menu.classList.remove("open"); });
       grid.appendChild(b);
