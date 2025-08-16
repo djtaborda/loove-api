@@ -26,7 +26,7 @@
   }
   .wrap{width:100%; max-width:1060px; margin:0 auto; padding:16px}
 
-  /* Header compacto, mantendo estética */
+  /* Header compacto */
   header{display:flex; align-items:center; gap:10px; padding:12px 2px; margin-bottom:8px}
   .backbtn{appearance:none; border:none; background:transparent; color:#fff; cursor:pointer; width:40px; height:40px; border-radius:12px; display:grid; place-items:center}
   .backbtn:hover{filter:brightness(1.1)}
@@ -35,18 +35,14 @@
   .muted{color:var(--muted)}
   .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px}
 
-  /* Barra de status/uso */
-  .status{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .pill{padding:8px 12px; border:1px solid rgba(255,255,255,.12); border-radius:999px; font-weight:800; background:#0d1320}
-  .actions{margin-left:auto; display:flex; gap:8px}
+  /* Filtro local + ações */
+  .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .filter{display:flex; align-items:center; gap:10px; margin:10px 0; width:100%}
+  .filter input{flex:1; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2}
+  .actions{display:flex; gap:8px; margin-left:auto}
   .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:#e6ecf2; padding:10px 14px; border-radius:14px; cursor:pointer; font-weight:800}
   .btn:hover{transform:translateY(-1px)}
   .btn-danger{background:linear-gradient(180deg,#ff5b5b,#cc2b2b); border:none; color:#fff}
-  .btn-primary{border:none; background:linear-gradient(180deg,#ff8b24,#ff6a00); color:#0b0f14}
-
-  /* Filtro local */
-  .filter{display:flex; align-items:center; gap:10px; margin:10px 0}
-  .filter input{flex:1; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2}
 
   /* Lista de músicas */
   .list{margin:0; padding:0}
@@ -76,13 +72,14 @@
   .t-menu .menu-item{width:100%; text-align:left; padding:10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer; font-weight:700}
   .t-menu .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
 
-  /* PLAYER fixo (igual identidade) */
+  /* ===== Player (idêntico ao do index) ===== */
   footer.player{position:fixed; left:0; right:0; bottom:0; z-index:20; background:transparent}
   .player-shell{max-width:980px; margin:0 auto 16px; padding:14px 16px; background:#0c1117; border:1px solid rgba(255,255,255,.08); border-radius:24px; box-shadow:0 24px 60px rgba(0,0,0,.55)}
   .p-top{display:flex; align-items:center; gap:10px; margin-bottom:8px}
   .track-title{font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .track-right{margin-left:auto; display:flex; align-items:center; gap:8px}
   .kebab2{width:34px; height:34px; border-radius:10px; background:transparent; border:none; color:#e6ecf2; display:grid;place-items:center; cursor:pointer}
+  .track-sub{font-size:12px; color:#9aa4b2; margin-top:-2px}
   .progress{width:100%; margin-bottom:10px}
   .seek{appearance:none; width:100%; height:6px; border-radius:999px; background:#2a3342; outline:none}
   .seek::-webkit-slider-thumb{appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid #bbb}
@@ -91,9 +88,20 @@
   .p-btn{width:44px; height:44px; border:none; background:transparent; color:#fff; display:grid; place-items:center; cursor:pointer; padding:0}
   .p-btn svg{width:28px; height:28px; stroke:#ffffff; opacity:.9}
   .p-btn:hover svg{opacity:1; filter:drop-shadow(0 0 4px rgba(255,255,255,.25))}
+  .p-btn.active svg{stroke:#31e1ff}
   .p-play{width:62px; height:62px; border-radius:999px; background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; border:none; display:grid; place-items:center; box-shadow:0 8px 30px rgba(255,140,0,.35)}
+  .p-play svg{width:28px; height:28px; stroke:#ffffff}
+
+  .vol-pop{position:absolute; bottom:64px; right:16px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none}
+  .vol-pop.open{display:block}
+  .vol-range{appearance:none; width:160px; height:6px; border-radius:999px; background:#2a3342}
+  .vol-range::-webkit-slider-thumb{appearance:none; width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #bbb}
+  .vol-range::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #bbb}
+
   .menu-pop{position:absolute; bottom:64px; right:54px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:8px; border-radius:12px; display:none; min-width:240px}
   .menu-pop.open{display:block}
+  .menu-pop .menu-item{width:100%; text-align:left; padding:10px 10px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer}
+  .menu-pop .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
 </style>
 </head>
 <body>
@@ -109,18 +117,14 @@
     </header>
 
     <section class="card">
-      <div class="status">
-        <span class="pill" id="spaceUse">Uso: 0 MB / 500 MB</span>
-        <span class="pill" id="countUse">Arquivos: 0</span>
+      <div class="row" style="justify-content:space-between">
+        <div class="filter">
+          <input id="filter" type="search" placeholder="Filtrar por nome ou pasta..." />
+          <button class="btn" id="btnSort">Ordenar por nome</button>
+        </div>
         <div class="actions">
-          <button class="btn" id="btnExport">Exportar lista</button>
           <button class="btn-danger" id="btnClearAll">Excluir tudo</button>
         </div>
-      </div>
-
-      <div class="filter">
-        <input id="filter" type="search" placeholder="Filtrar por nome ou pasta..." />
-        <button class="btn" id="btnSort">Ordenar por nome</button>
       </div>
 
       <ul id="list" class="list"></ul>
@@ -128,13 +132,13 @@
     </section>
   </div>
 
-  <!-- PLAYER -->
+  <!-- PLAYER (igual ao index) -->
   <footer class="player">
     <div class="player-shell">
       <div class="p-top">
         <div>
           <div class="track-title" id="nowTitle">Nada tocando</div>
-          <div class="muted" id="nowFolder">—</div>
+          <div class="track-sub" id="nowFolder">—</div>
         </div>
         <div class="track-right">
           <div id="nowTime" class="muted">0:00 / 0:00</div>
@@ -143,35 +147,58 @@
       </div>
       <div class="progress"><input id="seek" class="seek" type="range" min="0" max="1000" value="0" /></div>
       <div class="p-controls">
-        <button id="pPrev"   class="p-btn" title="Voltar">
-          <svg viewBox='0 0 24 24' fill='none'><path d='M11 6l-7 6 7 6V6zM20 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>
-        </button>
-        <button id="pPlay"   class="p-play" title="Play/Pause">
-          <svg viewBox='0 0 24 24' fill='none'><path d='M8 5l11 7-11 7V5z' stroke-width='2.2' stroke-linejoin='round' stroke='#ffffff'/></svg>
-        </button>
-        <button id="pNext"   class="p-btn" title="Avançar">
-          <svg viewBox='0 0 24 24' fill='none'><path d='M13 6l7 6-7 6V6zM4 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>
-        </button>
+        <button id="pHome"   class="p-btn" title="Início"></button>
+        <button id="pSearch" class="p-btn" title="Buscar"></button>
+        <button id="pPrev"   class="p-btn" title="Voltar"></button>
+        <button id="pPlay"   class="p-play" title="Play/Pause"></button>
+        <button id="pNext"   class="p-btn" title="Avançar"></button>
+        <button id="pShuffle" class="p-btn" title="Shuffle"></button>
+        <button id="pRepeat"  class="p-btn" title="Repeat"></button>
+        <div style="position:relative">
+          <button id="pVolume"  class="p-btn" title="Volume"></button>
+          <div id="volPop" class="vol-pop">
+            <input id="volRange" class="vol-range" type="range" min="0" max="1" step="0.01" value="1" />
+          </div>
+        </div>
       </div>
       <div id="menuPop" class="menu-pop">
-        <button class="btn" id="miShare" style="width:100%; text-align:left">Compartilhar</button>
+        <button class="menu-item" id="miShare">Compartilhar</button>
+        <button class="menu-item" id="miFav">Favoritar</button>
+        <button class="menu-item" id="miDown">Remover download</button>
+        <button class="menu-item" id="miCreatePl">Criar playlist</button>
+        <button class="menu-item" id="miSavePl">Salvar playlist</button>
       </div>
     </div>
     <audio id="audio" crossorigin="anonymous"></audio>
   </footer>
 
 <script>
-/* ===== Constantes iguais ao index (para manter compatibilidade) ===== */
+/* ====== Constantes e helpers (compatíveis com o index) ====== */
 const DOWNLOAD_INDEX_KEY = "loove_download_index_v1";
-const LIMIT_BYTES = 500 * 1024 * 1024; // 500MB
+const FAVORITES_KEY = "loove_favs_v1";
+const PLAYLISTS_KEY = "loove_user_playlists_v1";
 const PLAYBACK_KEY = "loove_playback_v1";
+const LIMIT_BYTES = 500 * 1024 * 1024; // 500MB (mude aqui se quiser 3GB)
 
 const el = id => document.getElementById(id);
 function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
 function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
 function fmtTime(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
 
-/* ===== IndexedDB (mesma base do index) ===== */
+/* ====== Ícones iguais ao index ====== */
+function icoHome(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M3 10.5 12 3l9 7.5M5 9.5v11h5v-6h4v6h5v-11" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"/></svg>`}
+function icoSearch(){return `<svg viewBox='0 0 24 24' fill='none'><circle cx='11' cy='11' r='7' stroke-width='2.2'/><path d='M20 20l-3.5-3.5' stroke-width='2.2' stroke-linecap='round'/></svg>`}
+function icoPrev(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M11 6l-7 6 7 6V6zM20 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
+function icoNext(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M13 6l7 6-7 6V6zM4 5v14' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/></svg>`}
+function icoPlay(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5l11 7-11 7V5z' stroke-width='2.2' stroke-linejoin='round' stroke='#ffffff'/></svg>`}
+function icoPause(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5v14M16 5v14' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>`}
+function icoShuffle(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M16 3h5v5M3 17h6c3 0 6-4 6-4' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 21v-5h-5M3 7h6c2 0 3 2 4 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>`}
+function icoRepeat(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M17 1l3 3-3 3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 11V8a3 3 0 0 1 3-3h13' stroke-width='2.2' stroke-linecap='round'/><path d='M7 23l-3-3 3-3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 13v3a3 3 0 0 1-3 3H4' stroke-width='2.2' stroke-linecap='round'/></svg>`}
+function icoVolume(){return `<svg viewBox='0 0 24 24' fill='none'><path d='M4 10v4h4l6 5V5l-6 5H4z' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/><path d='M18 9a3 3 0 0 1 0 6M20 7a6 6 0 0 1 0 10' stroke-width='2.2' stroke-linecap='round'/></svg>`}
+function icoKebab(){return `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/><circle cx="12" cy="19" r="2" stroke-width="2"/></svg>`}
+function icoHeart(){return `<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.7-9.5-8A5.6 5.6 0 0 1 12 6a5.6 5.6 0 0 1 9.5 7c-2.5 3.3-9.5 8-9.5 8Z" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+
+/* ====== IndexedDB ====== */
 let dbPromise = null;
 function idb(){
   if(dbPromise) return dbPromise;
@@ -200,40 +227,51 @@ async function idbDel(key){
   });
 }
 
-/* ===== Índice em localStorage ===== */
+/* ====== Índice local ====== */
 function loadIdx(){ try{ return JSON.parse(localStorage.getItem(DOWNLOAD_INDEX_KEY)||"{}"); }catch{ return {}; } }
 function saveIdx(idx){ localStorage.setItem(DOWNLOAD_INDEX_KEY, JSON.stringify(idx||{})); }
-function totalBytes(idx){ let s=0; for(const k in idx){ s+=Number(idx[k]?.size||0) } return s; }
 
-/* ===== UI: lista e estado ===== */
-let items = [];        // [{key, name, size, ts, folder}]
-let view = [];         // resultado filtrado/ordenado
-let curKey = null;     // key tocando
-let objURL = null;     // URL.createObjectURL atual
+/* ====== Favoritos e Playlists (compatível com index) ====== */
+function favs(){ try{ return JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]"); }catch{ return []; } }
+function setFavs(a){ localStorage.setItem(FAVORITES_KEY, JSON.stringify(a||[])); }
+function toggleFav(k){ const f=favs(); const i=f.indexOf(k); if(i>=0) f.splice(i,1); else f.push(k); setFavs(f); }
+
+function loadUserPlaylists(){ try{ return JSON.parse(localStorage.getItem(PLAYLISTS_KEY)||"[]"); }catch{ return []; } }
+function saveUserPlaylists(arr){ localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(arr||[])); }
+function slug(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,""); }
+function createPlaylistInternal(name){
+  const pls = loadUserPlaylists();
+  const id = slug(name) + "-" + Date.now().toString(36);
+  const pl = { id, name: name || "Playlist", tracks: [], createdAt: Date.now() };
+  pls.push(pl); saveUserPlaylists(pls);
+  return pl;
+}
+function addTrackToPlaylist(plId, trackKey){
+  const pls = loadUserPlaylists();
+  const pl = pls.find(p=>p.id===plId); if(!pl) return;
+  pl.tracks = Array.from(new Set([...(pl.tracks||[]), trackKey]));
+  saveUserPlaylists(pls);
+}
+
+/* ====== Lista/filtragem ====== */
+let items = [];  // {key,name,size,ts,folder}
+let view  = [];  // filtrado/ordenado
+let curKey = null, objURL = null;
 
 const list = el("list");
 const empty = el("empty");
 const filterInput = el("filter");
 const btnSort = el("btnSort");
-
-function renderHeader(){
-  const idx = loadIdx();
-  const used = totalBytes(idx);
-  const pct = Math.min(100, Math.round((used / LIMIT_BYTES)*100));
-  el("spaceUse").textContent = `Uso: ${(used/1024/1024).toFixed(1)} MB / 500 MB (${pct}%)`;
-  el("countUse").textContent = `Arquivos: ${Object.keys(idx).length}`;
-}
+let sortByName = false;
 
 function refreshData(){
   const idx = loadIdx();
   items = Object.keys(idx).map(k=>{
     const m = idx[k]||{};
     return { key:k, name:m.name||k.split("/").pop(), size:Number(m.size||0), ts:Number(m.ts||0), folder:m.folder||parentFolderFromKey(k) };
-  }).sort((a,b)=> b.ts - a.ts); // mais recentes primeiro
+  }).sort((a,b)=> b.ts - a.ts);
   applyFilterSort();
 }
-
-let sortByName = false;
 function applyFilterSort(){
   const q = (filterInput.value||"").toLowerCase();
   view = items.filter(it=>{
@@ -243,13 +281,9 @@ function applyFilterSort(){
   if(sortByName){ view.sort((a,b)=> a.name.localeCompare(b.name)); }
   renderList();
 }
-
 function renderList(){
   list.innerHTML = "";
-  if(!view.length){
-    empty.style.display = "";
-    return;
-  }
+  if(!view.length){ empty.style.display = ""; return; }
   empty.style.display = "none";
 
   view.forEach(it=>{
@@ -268,24 +302,17 @@ function renderList(){
 
     const mid = document.createElement("div");
     mid.className="t-titleBox";
-    const t1 = document.createElement("div");
-    t1.className="t-title";
-    t1.textContent = formatTitle(it.name);
-    const t2 = document.createElement("div");
-    t2.className="t-sub";
-    const mb = (it.size/1024/1024).toFixed(1);
-    const d = new Date(it.ts||Date.now());
-    t2.textContent = `${it.folder} • ${mb} MB • ${d.toLocaleDateString()}`;
+    const t1 = document.createElement("div"); t1.className="t-title"; t1.textContent = formatTitle(it.name);
+    const t2 = document.createElement("div"); t2.className="t-sub";
+    const d = new Date(it.ts||Date.now()); t2.textContent = `${it.folder} • ${d.toLocaleDateString()}`;
     mid.appendChild(t1); mid.appendChild(t2);
 
     const right = document.createElement("div");
     right.className="t-right";
-    const keb = document.createElement("button");
-    keb.className = "kebab";
-    keb.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/><circle cx="12" cy="19" r="2" stroke-width="2"/></svg>`;
+    const keb = document.createElement("button"); keb.className = "kebab";
+    keb.innerHTML = icoKebab();
 
-    const menu = document.createElement("div");
-    menu.className = "t-menu";
+    const menu = document.createElement("div"); menu.className = "t-menu";
     menu.innerHTML = `
       <button class="menu-item miPlay">▶ Tocar</button>
       <button class="menu-item miDel">🗑️ Excluir download</button>
@@ -307,7 +334,6 @@ function renderList(){
       await idbDel(it.key);
       const idx = loadIdx(); delete idx[it.key]; saveIdx(idx);
       if(curKey===it.key){ stopPlayback(); }
-      renderHeader();
       refreshData();
     };
     menu.querySelector(".miShare").onclick = async ()=>{
@@ -319,36 +345,37 @@ function renderList(){
     };
     menu.querySelector(".miInfo").onclick = ()=>{
       menu.classList.remove("open");
-      alert(`Arquivo: ${it.name}\nPasta: ${it.folder}\nTamanho: ${(it.size/1024/1024).toFixed(2)} MB\nSalvo em: ${new Date(it.ts).toLocaleString()}`);
+      alert(`Arquivo: ${it.name}\nPasta: ${it.folder}\nSalvo em: ${new Date(it.ts).toLocaleString()}`);
     };
 
     right.appendChild(keb);
-
-    li.appendChild(left);
-    li.appendChild(mid);
-    li.appendChild(right);
-    li.appendChild(menu);
+    li.appendChild(left); li.appendChild(mid); li.appendChild(right); li.appendChild(menu);
     list.appendChild(li);
   });
 }
 
-/* ===== Player offline simples ===== */
+/* ====== Player offline (mesmo visual do index) ====== */
 const audio = el("audio");
 const seek  = el("seek");
 const nowTitle  = el("nowTitle");
 const nowFolder = el("nowFolder");
 const nowTime   = el("nowTime");
-const pPlay = el("pPlay");
-const pPrev = el("pPrev");
-const pNext = el("pNext");
+const pPlay   = el("pPlay");
+const pPrev   = el("pPrev");
+const pNext   = el("pNext");
+const pHome   = el("pHome");
+const pSearch = el("pSearch");
+const pShuffle = el("pShuffle");
+const pRepeat  = el("pRepeat");
+const pVolume  = el("pVolume");
+const volPop = el("volPop");
+const volRange = el("volRange");
 const btnKebab = el("btnKebab");
 const menuPop = el("menuPop");
 
-function setPlayIcon(isPlaying){
-  pPlay.innerHTML = isPlaying
-   ? `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5v14M16 5v14' stroke='#ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>`
-   : `<svg viewBox='0 0 24 24' fill='none'><path d='M8 5l11 7-11 7V5z' stroke-width='2.2' stroke-linejoin='round' stroke='#ffffff'/></svg>`;
-}
+let shuffleOn=false, repeatOn=false;
+
+function setPlayIcon(isPlaying){ pPlay.innerHTML = isPlaying ? icoPause() : icoPlay(); }
 function stopPlayback(){
   if(objURL){ URL.revokeObjectURL(objURL); objURL=null; }
   audio.removeAttribute("src");
@@ -371,12 +398,10 @@ async function playOffline(key, name){
     nowFolder.textContent = parentFolderFromKey(key) || "—";
     await audio.play();
     setPlayIcon(true);
-    // salva estado para retomada no app principal também
+    // salvar estado para que o index retome
     try{
-      const idx = loadIdx();
-      const meta = idx[key]||{};
       localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-        key, name: meta.name || name || key.split("/").pop(), pos: 0, playing: true
+        key, name: name||key.split("/").pop(), pos: 0, playing: true
       }));
     }catch{}
   }catch(e){
@@ -384,7 +409,6 @@ async function playOffline(key, name){
     alert("Não foi possível tocar este arquivo agora.");
   }
 }
-
 audio.addEventListener("timeupdate", ()=>{
   const cur=audio.currentTime||0; const dur=audio.duration||0;
   nowTime.textContent = `${fmtTime(cur)} / ${fmtTime(dur)}`;
@@ -394,7 +418,10 @@ audio.addEventListener("loadedmetadata", ()=>{
   const cur=audio.currentTime||0; const dur=audio.duration||0;
   nowTime.textContent = `${fmtTime(cur)} / ${fmtTime(dur)}`;
 });
-audio.addEventListener("ended", ()=> setPlayIcon(false));
+audio.addEventListener("ended", ()=>{
+  setPlayIcon(false);
+  if(repeatOn && audio.src){ audio.currentTime=0; audio.play(); setPlayIcon(true); }
+});
 seek.addEventListener("input", ()=>{
   const dur=audio.duration||0; if(dur<=0) return;
   audio.currentTime = (Number(seek.value)/1000)*dur;
@@ -411,16 +438,44 @@ pNext.onclick = ()=>{
   const i = view.findIndex(v=>v.key===curKey);
   if(i>=0 && i<view.length-1){ const n=view[i+1]; playOffline(n.key, n.name); }
 };
-btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); };
-document.addEventListener("click",(e)=>{ if(!menuPop.contains(e.target) && !btnKebab.contains(e.target)) menuPop.classList.remove("open"); });
-el("miShare").onclick = async ()=>{
-  try{
-    if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.origin }); }
-    else{ await navigator.clipboard.writeText(location.origin); alert("Link copiado!"); }
-  }catch{}
+pHome.innerHTML = icoHome();
+pSearch.innerHTML = icoSearch();
+pPrev.innerHTML = icoPrev();
+pNext.innerHTML = icoNext();
+pShuffle.innerHTML = icoShuffle();
+pRepeat.innerHTML  = icoRepeat();
+pVolume.innerHTML  = `<svg viewBox='0 0 24 24' fill='none'><path d='M4 10v4h4l6 5V5l-6 5H4z' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/><path d='M18 9a3 3 0 0 1 0 6M20 7a6 6 0 0 1 0 10' stroke-width='2.2' stroke-linecap='round'/></svg>`;
+pPlay.innerHTML    = icoPlay();
+
+pHome.onclick   = ()=>{ location.href = "/"; };
+pSearch.onclick = ()=>{ location.href = "/#buscar"; }; // leva para a página principal para buscar
+pShuffle.onclick = ()=>{ shuffleOn=!shuffleOn; pShuffle.classList.toggle("active", shuffleOn); };
+pRepeat.onclick  = ()=>{ repeatOn=!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
+
+pVolume.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.remove("open"); volPop.classList.toggle("open"); };
+volRange.addEventListener("input", ()=>{ audio.volume = Number(volRange.value); });
+document.addEventListener("click", (ev)=>{
+  if(!volPop.contains(ev.target) && !pVolume.contains(ev.target)) volPop.classList.remove("open");
+  if(!menuPop.contains(ev.target) && !btnKebab.contains(ev.target)) menuPop.classList.remove("open");
+});
+btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); volPop.classList.remove("open"); };
+
+/* Menu do player (igual sem depender do backend) */
+el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.origin }); } else { await navigator.clipboard.writeText(location.origin); alert("Link copiado!"); } }catch{} };
+el("miFav").onclick   = ()=>{ if(curKey){ toggleFav(curKey); alert("Favorito atualizado."); } };
+el("miDown").onclick  = async ()=>{ if(curKey){ // aqui só removemos, pois esta tela é de OFFLINE
+  await idbDel(curKey);
+  const idx = loadIdx(); delete idx[curKey]; saveIdx(idx);
+  stopPlayback(); refreshData(); alert("Download removido.");
+} };
+el("miCreatePl").onclick = ()=>{ const n=prompt("Nome da nova playlist:"); if(!n) return; createPlaylistInternal(n.trim()); alert("Playlist criada!"); };
+el("miSavePl").onclick   = ()=>{ if(!curKey){ alert("Nada tocando."); return; } const name = prompt("Salvar em qual playlist? (nome novo ou existente)"); if(!name) return;
+  const pls = loadUserPlaylists(); let pl = pls.find(p=>p.name.toLowerCase()===name.trim().toLowerCase());
+  if(!pl){ pl = createPlaylistInternal(name.trim()); }
+  addTrackToPlaylist(pl.id, curKey); alert("Música salva na playlist!");
 };
 
-/* ===== Controles: filtro, ordenação, excluir tudo, exportar ===== */
+/* ====== Controles de lista ====== */
 filterInput.addEventListener("input", applyFilterSort);
 btnSort.addEventListener("click", ()=>{
   sortByName = !sortByName;
@@ -434,31 +489,14 @@ el("btnClearAll").onclick = async ()=>{
   for(const k of keys){ await idbDel(k); }
   localStorage.removeItem(DOWNLOAD_INDEX_KEY);
   stopPlayback();
-  renderHeader();
   refreshData();
   alert("Downloads apagados.");
 };
-el("btnExport").onclick = ()=>{
-  const idx = loadIdx();
-  const arr = Object.keys(idx).map(k=>({
-    key: k,
-    name: idx[k]?.name||k.split("/").pop(),
-    folder: idx[k]?.folder||"",
-    size: idx[k]?.size||0,
-    savedAt: new Date(idx[k]?.ts||Date.now()).toISOString()
-  }));
-  const blob = new Blob([JSON.stringify(arr,null,2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "downloads_loove.json"; a.click();
-  URL.revokeObjectURL(url);
-};
 
-/* ===== Navegação ===== */
+/* ====== Navegação ====== */
 el("goBack").onclick = ()=>{ location.href = "/"; };
 
-/* ===== Boot ===== */
-renderHeader();
+/* ====== Boot ====== */
 refreshData();
 </script>
 </body>
