@@ -411,12 +411,33 @@
       </div>
     </section>
 
-    <!-- NOTIFICAÇÕES -->
-    <section id="viewNotify" class="card" style="display:none">
-      <h3 style="margin-top:0">Notificações</h3>
-      <p class="muted">Central de avisos do aplicativo.</p>
-      <div id="notifBox" class="muted">Nenhuma notificação.</div>
-    </section>
+   <!-- NOTIFICAÇÕES -->
+<section id="viewNotify" class="card" style="display:none">
+  <h3 style="margin-top:0">Notificações</h3>
+  <p class="muted">Escolha quais tipos de aviso deseja receber.</p>
+
+  <div style="display:flex; flex-direction:column; gap:10px; max-width:420px">
+
+    <button id="btnNotifMusicas" class="btn">
+      🎵 Quero receber notificação de <strong>MÚSICAS NOVAS</strong>
+    </button>
+
+    <button id="btnNotifNovidades" class="btn">
+      🌟 Quero receber notificação de <strong>NOVIDADES E SUCESSOS</strong>
+    </button>
+
+    <button id="btnNotifPlaylists" class="btn">
+      🎧 Quero receber notificação de <strong>PLAYLISTS ESPECIAIS</strong>
+    </button>
+
+    <div style="margin-top:8px">
+      <button id="btnNotifAll" class="btn btn-primary" 
+              style="background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; font-weight:900;">
+        🔔 Ativar ou desativar todas as notificações
+      </button>
+    </div>
+  </div>
+</section>
 
     <!-- AJUDA -->
     <section id="viewHelp" class="card" style="display:none">
