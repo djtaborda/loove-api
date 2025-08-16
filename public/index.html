@@ -17,13 +17,14 @@
   }
 
   /* ================== CHANGELOG ==================
-     Edição 08 — Shuffle por contexto (Favoritos/Minhas playlists)
-     - Shuffle passa a considerar o "contexto" atual:
-       * Favoritos: sorteia só entre os favoritos do usuário
-       * Minhas playlists: sorteia só dentro da playlist aberta
-       * Outras telas (pastas/busca): mantém a lógica anterior
-     - Mantém: destaque da faixa tocando, DnD em Favoritos/Playlists,
-       downloads offline (500MB), modal de playlist sob demanda.
+     Edição 09 — Áudio não pausa ao abrir janelas/menus
+     - Proteção contra pausas involuntárias ao abrir:
+       * Drawer do usuário, menus “⋯”, modal de playlists
+       * alert / confirm / prompt (nativos)
+       * share nativo (navigator.share)
+     - Só pausa ao apertar Pause (intencional) ou sair da página.
+     - Mantido: Shuffle por contexto, DnD em Favoritos/Playlists,
+       destaque da faixa, downloads offline (500MB), etc.
   ================================================= */
 
   *{box-sizing:border-box}
@@ -190,7 +191,6 @@
   @media(min-width:740px) and (max-width:1023px){ .pl-grid{grid-template-columns: repeat(3, 1fr);} }
   @media(max-width:739px){ .pl-grid{grid-template-columns: repeat(2, 1fr);} }
 
-  /* Estilo neon das capas de playlists */
   .pl-item{
     min-height:92px; padding:10px; border-radius:18px; cursor:pointer;
     display:flex; align-items:center; justify-content:center; text-align:center;
@@ -321,7 +321,7 @@
     <div id="msg" class="muted" style="margin-top:8px"></div>
   </section>
 
-  <!-- MODAL: Seletor de Playlist (abre apenas quando chamado) -->
+  <!-- MODAL: Seletor de Playlist -->
   <div id="plModal" class="pl-modal" aria-hidden="true">
     <div class="pl-card">
       <div class="pl-title">
@@ -702,7 +702,6 @@
   async function rebuildShufflePoolForCurrentTrack(){
     if(!currentKey) { shufflePool=[]; shufflePrefix=null; return []; }
 
-    // 1) Favoritos: sorteia apenas entre favoritos
     if(context.type === 'favorites'){
       const pool = favs().map(k=>({ key:k, name:k.split("/").pop() }))
                          .filter(it => it.key !== currentKey);
@@ -711,7 +710,6 @@
       return shufflePool;
     }
 
-    // 2) Playlist do usuário: sorteia apenas dentro da playlist aberta
     if(context.type === 'playlist' && currentPlaylistEditingId){
       const pls = loadUserPlaylists();
       const pl = pls.find(p=>p.id===currentPlaylistEditingId);
@@ -722,7 +720,6 @@
       return shufflePool;
     }
 
-    // 3) Padrão (pasta/busca): mesma lógica anterior por pasta
     const prefix = folderPrefixOf(currentKey);
     shufflePrefix = prefix;
 
@@ -753,7 +750,6 @@
       LI.className = "track";
       LI.setAttribute("data-key", m.key);
 
-      // habilita drag&drop somente quando estamos editando uma playlist do usuário
       if(currentPlaylistEditingId){
         LI.draggable = true;
         wireDnDItem(LI, index, "playlist");
@@ -810,10 +806,7 @@
       };
 
       menu.querySelector(".miShare").onclick = async ()=>{
-        try{
-          if(navigator.share){ await navigator.share({ title: formatTitle(m.name), text:"Ouça no Loove", url: location.href }); }
-          else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); }
-        }catch{}
+        await shareWithResume({ title: formatTitle(m.name), text:"Ouça no Loove", url: location.href });
         menu.classList.remove("open");
       };
       menu.querySelector(".miFav").onclick = ()=>{
@@ -888,6 +881,49 @@
   let currentKey = null, currentName = null;
   let currentObjectURL = null; // para revogar quando trocar a faixa
 
+  /* ======== NOVO: proteção anti-pausa involuntária ======== */
+  let userPaused = false; // true apenas quando o usuário clica em Pause
+
+  function resumeIfNeeded(){
+    if(document.visibilityState==='visible' && audio.src && audio.paused && !userPaused){
+      audio.play().catch(()=>{});
+    }
+  }
+
+  // Reforço quando a aba volta a ficar visível ou a janela volta ao foco
+  document.addEventListener('visibilitychange', resumeIfNeeded);
+  window.addEventListener('focus', resumeIfNeeded);
+
+  // Protege contra pausas causadas por alert/confirm/prompt
+  (function protectAudioDuringNativeModals(){
+    const wrap = (orig)=> function(...args){
+      const wasPlaying = audio && !audio.paused;
+      try{ return orig.apply(this, args); }
+      finally{
+        if(wasPlaying && !userPaused) { audio.play().catch(()=>{}); }
+      }
+    };
+    window.alert  = wrap(window.alert.bind(window));
+    window.confirm= wrap(window.confirm.bind(window));
+    window.prompt = wrap(window.prompt.bind(window));
+  })();
+
+  // Compartilhamento com retomada do áudio após o sheet nativo
+  async function shareWithResume(data){
+    const wasPlaying = audio && !audio.paused;
+    try{
+      if(navigator.share){
+        await navigator.share(data);
+      }else{
+        await navigator.clipboard.writeText(location.href);
+        alert("Link copiado!");
+      }
+    }finally{
+      if(wasPlaying && !userPaused) { audio.play().catch(()=>{}); }
+    }
+  }
+  /* ======================================================== */
+
   function setNow(name,key){ nowTitle.textContent = formatTitle(name||""); nowFolder.textContent = (key? parentFolderFromKey(key):"") || "—"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
   function updateTimeUI(){ const cur=audio.currentTime||0; const dur=audio.duration||0; nowTime.textContent = `${fmt(cur)} / ${fmt(dur)}`; seek.value = (dur>0&&!isNaN(dur)) ? Math.round((cur/dur)*1000) : 0; }
@@ -895,6 +931,7 @@
   audio.addEventListener("loadedmetadata", updateTimeUI);
   audio.addEventListener("ended", async ()=>{
     setPlayIcon(false);
+    // não marcar como userPaused — vamos continuar automaticamente se repeat/shuffle
     if(repeatOn){
       audio.currentTime=0;
       await audio.play().catch(()=>{});
@@ -923,9 +960,13 @@
   seek.addEventListener("input", ()=>{ const dur=audio.duration||0; if(dur<=0) return; audio.currentTime = (Number(seek.value)/1000)*dur; updateTimeUI(); });
 
   function setPlayIcon(isPlaying){ el("pPlay").innerHTML = isPlaying ? icoPause() : icoPlay(); }
-  pPlay.onclick = ()=>{ if(!audio.src) return; if(audio.paused){ audio.play(); setPlayIcon(true); } else { audio.pause(); setPlayIcon(false); } };
-  pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
+  pPlay.onclick = ()=>{ if(!audio.src) return;
+    if(audio.paused){ audio.play(); setPlayIcon(true); userPaused=false; }
+    else { audio.pause(); setPlayIcon(false); userPaused=true; }
+  };
+  pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) { userPaused=false; playKey(items[idx-1].key, items[idx-1].name); } } };
   pNext.onclick = async ()=>{
+    userPaused=false;
     if(shuffleOn){
       if(context.type === 'favorites' || context.type === 'playlist'){
         if(!shufflePool.length) await rebuildShufflePoolForCurrentTrack();
@@ -953,7 +994,6 @@
 
     if(shuffleOn){
       if(!currentKey && (context.type==='favorites' || context.type==='playlist')){
-        // se não há música tocando, apenas prepara o pool; o usuário pode dar "Próxima"
         await rebuildShufflePoolForCurrentTrack();
         if(!shufflePool.length){
           alert("Não há músicas suficientes para sortear neste contexto.");
@@ -967,7 +1007,6 @@
         pShuffle.classList.remove("active");
         return;
       }
-      // Sempre reconstrói no contexto atual
       await rebuildShufflePoolForCurrentTrack();
       if(!shufflePool.length){
         alert("Não há outras músicas neste contexto para sortear.");
@@ -986,7 +1025,7 @@
   });
   btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); volPop.classList.remove("open"); };
 
-  el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
+  el("miShare").onclick = async ()=>{ await shareWithResume({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); };
   el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
   el("miDown").onclick = ()=>{ if(currentKey){ if(isDownloaded(currentKey)) removeDownload(currentKey); else startDownload(currentKey, currentName||currentKey.split("/").pop()); } };
   el("miCreatePl").onclick = ()=>{ const n=prompt("Nome da nova playlist:"); if(!n) return; createPlaylistInternal(n.trim()); renderMyPlaylists(); alert("Playlist criada!"); };
@@ -996,14 +1035,13 @@
     try{
       if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
 
-      // se baixado, toca do IndexedDB
       const blob = await idbGet(key);
       if(blob){
         currentKey = key; currentName = name;
         audio.src = URL.createObjectURL(blob);
         currentObjectURL = audio.src;
         setNow(name,key);
-        await audio.play(); setPlayIcon(true);
+        await audio.play(); setPlayIcon(true); userPaused=false;
         savePlayback({ key, name, pos: 0, playing: true });
         updatePlayingHighlight();
 
@@ -1020,11 +1058,10 @@
         return;
       }
 
-      // fallback: streaming normal
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       if(!d?.url){ goPremium(); return; }
       audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
-      await audio.play(); setPlayIcon(true);
+      await audio.play(); setPlayIcon(true); userPaused=false;
       savePlayback({ key, name, pos: 0, playing: true });
       updatePlayingHighlight();
 
@@ -1049,8 +1086,8 @@
     savePlayback({ key: currentKey, name: currentName || (currentKey.split("/").pop()), pos: Math.floor(audio.currentTime||0), playing: !audio.paused });
   }, 3000);
   audio.addEventListener("timeupdate", saveProgressThrottled);
-  audio.addEventListener("play",  ()=> savePlayback({ key: currentKey, name: currentName, playing: true,  pos: Math.floor(audio.currentTime||0) }));
-  audio.addEventListener("pause", ()=> savePlayback({ key: currentKey, name: currentName, playing: false, pos: Math.floor(audio.currentTime||0) }));
+  audio.addEventListener("play",  ()=> { userPaused=false; savePlayback({ key: currentKey, name: currentName, playing: true,  pos: Math.floor(audio.currentTime||0) }) });
+  audio.addEventListener("pause", ()=> { savePlayback({ key: currentKey, name: currentName, playing: false, pos: Math.floor(audio.currentTime||0) }) });
   window.addEventListener("beforeunload", ()=> savePlayback({ key: currentKey, name: currentName, pos: Math.floor(audio.currentTime||0), playing: !audio.paused }));
 
   /* ===== Drawer do usuário ===== */
@@ -1092,7 +1129,6 @@
     const f = favs(); el("btnFavPlayAll").style.display = f.length? "" : "none";
     if(!f.length){ cont.innerHTML = `<div class="muted">Você ainda não marcou favoritos.</div>`; }
 
-    // Contexto de favoritos
     isFavoritesContext = true;
     currentPlaylistEditingId = null;
     context = { type:'favorites', id:null, prefix:'' };
@@ -1104,8 +1140,8 @@
       row.className="track";
       row.style.padding="10px 10px";
       row.setAttribute("data-key", k);
-      row.draggable = true;               // drag & drop ativo em favoritos
-      wireDnDItem(row, index, "favs");    // liga handlers
+      row.draggable = true;
+      wireDnDItem(row, index, "favs");
 
       const left = document.createElement("div");
       left.className="t-left";
@@ -1146,10 +1182,7 @@
       };
 
       menu.querySelector(".miShare").onclick = async ()=>{
-        try{
-          if(navigator.share){ await navigator.share({ title: formatTitle(k.split("/").pop()), text:"Ouça no Loove", url: location.href }); }
-          else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); }
-        }catch{}
+        await shareWithResume({ title: formatTitle(k.split("/").pop()), text:"Ouça no Loove", url: location.href });
         menu.classList.remove("open");
       };
       menu.querySelector(".miUnfav").onclick = ()=>{
@@ -1215,6 +1248,7 @@
     el.addEventListener("dragend", ()=>{
       el.classList.remove("dragging");
       dragFromIndex = null;
+      resumeIfNeeded(); // se algum browser pausar durante o DnD
     });
     el.addEventListener("dragover", (e)=>{ e.preventDefault(); });
     el.addEventListener("drop", (e)=>{
@@ -1230,15 +1264,15 @@
         renderFavs();
       }else if(mode==="playlist" && currentPlaylistEditingId){
         items = arrayMove(items, dragFromIndex, toIndex);
-        // persiste a ordem na playlist
         const pls = loadUserPlaylists();
         const pl = pls.find(p=>p.id===currentPlaylistEditingId);
         if(pl){
           pl.tracks = items.map(it=> it.key);
           saveUserPlaylists(pls);
         }
-        renderList(); // re-render aplica highlight e mantém drag
+        renderList();
       }
+      resumeIfNeeded();
     });
   }
 
@@ -1425,7 +1459,7 @@
           if(target > 0) audio.currentTime = target;
           updateTimeUI();
           updatePlayingHighlight();
-          if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); }
+          if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); userPaused=false; }
           else{ setPlayIcon(false); }
         });
       };
