@@ -15,12 +15,13 @@
     --amber-2:#ffb02e; 
     --amber-3:#ff7a00;
   }
-  /* ⚡ Correções implementadas (comentários válidos):
-     - Janela “Adicionar à playlist” só abre quando chamada.
-     - Opção de download Premium nos 3 pontinhos (lista e player).
-     - Modo offline com IndexedDB com LIMITE REAL de 500MB por usuário.
-     - Aviso ao atingir 500MB e impedimento de novos downloads.
-     - Menu lateral “Downloads” mantém navegação original (/downloads.html).
+  /* ⚡ Correções e recursos:
+     - Modal “Adicionar à playlist” on-demand.
+     - Download Premium nos 3 pontinhos (lista e player).
+     - Offline via IndexedDB com LIMITE REAL 500MB/usuário.
+     - “Downloads” mantém navegação /downloads.html.
+     - Destaque laranja na faixa em reprodução.
+     - Reordenar por arrastar: Favoritos + Playlists pessoais.
   */
 
   *{box-sizing:border-box}
@@ -221,7 +222,7 @@
   .pl-menu button{width:100%; text-align:left; padding:8px 10px; border-radius:10px; background:transparent; border:1px solid transparent; color:#e6ecf2; cursor:pointer; font-weight:700}
   .pl-menu button:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
 
-  /* ===== Modal "Adicionar à playlist" – escondido por padrão ===== */
+  /* ===== Modal "Adicionar à playlist" ===== */
   .pl-modal{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:90}
   .pl-modal.open{display:flex; align-items:center; justify-content:center}
   .pl-card{width:min(520px, 92vw); background:#0c1117; border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px; box-shadow:0 20px 60px rgba(0,0,0,.55)}
@@ -231,6 +232,16 @@
   .pl-row:hover{background:#141e2e}
   .pl-row .muted{font-size:12px}
 
+  /* ===== Drag & Drop visual ===== */
+  .track.draggable{ cursor:grab; }
+  .track.dragging{ opacity:.85; }
+  .track.drag-over-top::before,
+  .track.drag-over-bottom::after{
+    content:""; position:absolute; left:10px; right:10px; height:4px;
+    background:linear-gradient(90deg,#ffcc6b,#ff7a00); border-radius:2px;
+  }
+  .track.drag-over-top::before{ top:-2px; }
+  .track.drag-over-bottom::after{ bottom:-2px; }
 </style>
 </head>
 <body>
@@ -287,7 +298,7 @@
       <div class="grid" id="foldersGrid"></div>
     </section>
 
-    <!-- LISTA -->
+    <!-- LISTA (usada também para abrir uma playlist do usuário) -->
     <section id="viewList" class="card" style="display:none">
       <div id="subfoldersWrap" style="display:none; margin-bottom:8px">
         <div class="grid" id="subfoldersGrid"></div>
@@ -298,7 +309,7 @@
       </div>
     </section>
 
-    <!-- FAVORITOS -->
+    <!-- FAVORITOS (reordenável) -->
     <section id="viewFavs" class="card" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
         <h3 style="margin:0">Favoritos</h3>
@@ -464,6 +475,7 @@
 
   let currentPrefix = "", nextToken = null, items = [];
   let premiumFolders = [];
+  let dragContext = null; // { type: 'favorites' | 'playlist', plId?: string }
 
   async function ensureAuth(){
     try { await api("/api/me"); show("app"); hide("viewLogin"); }
@@ -483,6 +495,7 @@
   });
 
   async function goHome(){
+    dragContext = null;
     currentPrefix = "";
     hide("viewList"); hide("viewFavs"); hide("viewPlaylists"); show("viewHome");
     await loadRootFolders();
@@ -556,8 +569,7 @@
   const LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
   let dbPromise = null;
 
-  function idb(){ // abre/cria DB e objectStore
-    if(dbPromise) return dbPromise;
+  function idb(){ if(dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject)=>{
       const open = indexedDB.open("loove_downloads_db", 1);
       open.onupgradeneeded = ()=>{ open.result.createObjectStore("tracks"); };
@@ -597,22 +609,71 @@
 
   function totalDownloadedBytes(){
     const idx = loadDownloadIndex();
-    let sum = 0;
-    for(const k in idx){ sum += Number(idx[k]?.size||0); }
+    let sum = 0; for(const k in idx){ sum += Number(idx[k]?.size||0); }
     return sum;
   }
 
-  /* ========= Destaque da faixa atual (variáveis + helper) ========= */
-  let currentKey = null, currentName = null; // <— declarado aqui para ser visível em toda a página
+  /* ========= Destaque da faixa atual ========= */
+  let currentKey = null, currentName = null;
   function updatePlayingHighlight(){
-    // remove destaque anterior
     document.querySelectorAll('.track.playing').forEach(n=> n.classList.remove('playing'));
-    // aplica no item com data-key = currentKey
     if(!currentKey) return;
     document.querySelectorAll('.track').forEach(n=>{
-      if(n.getAttribute('data-key') === currentKey){
-        n.classList.add('playing');
-      }
+      if(n.getAttribute('data-key') === currentKey){ n.classList.add('playing'); }
+    });
+  }
+
+  /* ========= Drag & Drop Helper (reordenar) ========= */
+  function makeReorderable(container, getKeys, setKeys){
+    let dragKey = null;
+    container.querySelectorAll('.track').forEach(row=>{
+      row.classList.add('draggable');
+      row.setAttribute('draggable','true');
+
+      row.addEventListener('dragstart', (e)=>{
+        dragKey = row.getAttribute('data-key');
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try{ e.dataTransfer.setData('text/plain', dragKey); }catch{}
+      });
+
+      row.addEventListener('dragend', ()=>{
+        row.classList.remove('dragging','drag-over','drag-over-top','drag-over-bottom');
+        container.querySelectorAll('.drag-over, .drag-over-top, .drag-over-bottom')
+          .forEach(x=> x.classList.remove('drag-over','drag-over-top','drag-over-bottom'));
+      });
+
+      row.addEventListener('dragover', (e)=>{
+        e.preventDefault();
+        const rect = row.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < (rect.height/2);
+        row.classList.add('drag-over');
+        row.classList.toggle('drag-over-top', before);
+        row.classList.toggle('drag-over-bottom', !before);
+      });
+
+      row.addEventListener('dragleave', ()=>{
+        row.classList.remove('drag-over','drag-over-top','drag-over-bottom');
+      });
+
+      row.addEventListener('drop', (e)=>{
+        e.preventDefault();
+        const arr = getKeys();
+        const from = arr.indexOf(dragKey);
+        const targetKey = row.getAttribute('data-key');
+        let to = arr.indexOf(targetKey);
+        const rect = row.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < (rect.height/2);
+        if(!before) to = to + 1; // soltar depois da linha
+
+        if(from<0 || to<0 || from===to) { row.classList.remove('drag-over','drag-over-top','drag-over-bottom'); return; }
+
+        const a = arr.slice();
+        const [m] = a.splice(from,1);
+        if(to>from) to--; // ajustar índice quando arrasta para baixo
+        a.splice(to,0,m);
+        setKeys(a); // salva e re-renderiza
+      });
     });
   }
 
@@ -621,14 +682,12 @@
       const idx = loadDownloadIndex();
       if(idx[key]){ alert("Esta música já está disponível off-line."); return; }
 
-      // obtém URL de streaming e baixa o Blob
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       if(!d?.url){ goPremium(); return; }
       const resp = await fetch(d.url);
       if(!resp.ok){ goPremium(); return; }
       const blob = await resp.blob();
 
-      // 🔒 Enforce limite 500MB ANTES de salvar
       const used = totalDownloadedBytes();
       const willUse = Number(blob.size||0);
       if(used + willUse > LIMIT_BYTES){
@@ -654,6 +713,7 @@
 
   /* ===== Navegar/entrar em pastas ===== */
   async function enterFolder(prefix){
+    dragContext = null;
     currentPrefix = prefix || ""; nextToken = null; items = [];
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
     el("list").innerHTML = "";
@@ -795,8 +855,28 @@
       UL.appendChild(LI);
     });
 
-    // aplica destaque se já houver faixa atual
     updatePlayingHighlight();
+
+    // ativa DnD somente quando estiver visualizando uma playlist do usuário
+    if(dragContext?.type === 'playlist'){
+      const getKeys = ()=>{
+        const pls = loadUserPlaylists();
+        const pl = pls.find(p=>p.id===dragContext.plId);
+        return (pl?.tracks||[]).slice();
+      };
+      const setKeys = (keys)=>{
+        const pls = loadUserPlaylists();
+        const pl = pls.find(p=>p.id===dragContext.plId);
+        if(!pl) return;
+        pl.tracks = keys;
+        saveUserPlaylists(pls);
+        // reflete a nova ordem na lista atual
+        items = keys.map(k=>({ key:k, name:k.split("/").pop() }));
+        renderList();
+        updatePlayingHighlight();
+      };
+      makeReorderable(UL, getKeys, setKeys);
+    }
   }
 
   function closeAllItemMenus(){ document.querySelectorAll(".t-menu.open").forEach(m=>m.classList.remove("open")); }
@@ -814,6 +894,7 @@
 
   /* ===== BUSCA ===== */
   async function doSearch(){
+    dragContext = null;
     const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
@@ -828,8 +909,8 @@
   const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
-  let shuffleOn=false, repeatOn=false; // (currentKey/currentName já foram declarados acima)
-  let currentObjectURL = null; // para revogar quando trocar a faixa
+  let shuffleOn=false, repeatOn=false;
+  let currentObjectURL = null;
 
   function setNow(name,key){ nowTitle.textContent = formatTitle(name||""); nowFolder.textContent = (key? parentFolderFromKey(key):"") || "—"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
@@ -872,10 +953,8 @@
 
   async function playKey(key,name){
     try{
-      // limpa URL anterior, se houver
       if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
 
-      // se baixado, toca do IndexedDB
       const blob = await idbGet(key);
       if(blob){
         currentKey = key; currentName = name;
@@ -883,17 +962,16 @@
         currentObjectURL = audio.src;
         setNow(name,key);
         await audio.play(); setPlayIcon(true);
-        updatePlayingHighlight(); // <— aplica destaque na lista
+        updatePlayingHighlight();
         savePlayback({ key, name, pos: 0, playing: true });
         return;
       }
 
-      // fallback: streaming normal
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       if(!d?.url){ goPremium(); return; }
       audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
       await audio.play(); setPlayIcon(true);
-      updatePlayingHighlight(); // <— aplica destaque na lista
+      updatePlayingHighlight();
       savePlayback({ key, name, pos: 0, playing: true });
     }catch(e){
       setPlayIcon(false);
@@ -928,8 +1006,11 @@
       case "account": location.href = "/conta.html"; break;
       case "search": el("q").focus(); break;
       case "playlists": openMyPlaylists(); break;
-      case "downloads": location.href = "/downloads.html"; break; /* mantém navegação original (Regra 05) */
-      case "favs": renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs"); break;
+      case "downloads": location.href = "/downloads.html"; break;
+      case "favs":
+        dragContext = { type:'favorites' };
+        renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs");
+        break;
       case "billing": goPremium(); break;
       case "settings": location.href = "/configuracoes.html"; break;
       case "notify":   location.href = "/notificacoes.html"; break;
@@ -938,7 +1019,7 @@
     }
   });
 
-  /* ===== Favoritos ===== */
+  /* ===== Favoritos (reordenável) ===== */
   el("btnMore").onclick = loadMore;
   function renderFavs(){
     const cont = el("favList"); cont.innerHTML = "";
@@ -1021,7 +1102,11 @@
       cont.appendChild(row);
     });
 
-    // aplica destaque quando estiver nos favoritos
+    // Reordenação por arrastar em Favoritos
+    if(dragContext?.type === 'favorites'){
+      makeReorderable(cont, ()=>favs().slice(), (keys)=>{ setFavs(keys); renderFavs(); updatePlayingHighlight(); });
+    }
+
     updatePlayingHighlight();
   }
   el("btnFavPlayAll").onclick = ()=>{
@@ -1037,6 +1122,7 @@
   function saveUserPlaylists(arr){ localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(arr||[])); }
 
   function openMyPlaylists(){
+    dragContext = null;
     hide("viewHome"); hide("viewList"); hide("viewFavs"); show("viewPlaylists");
     renderMyPlaylists();
   }
@@ -1126,6 +1212,7 @@
   }
 
   function openPlaylist(plId){
+    dragContext = { type:'playlist', plId };
     const pls = loadUserPlaylists();
     const pl = pls.find(p=>p.id===plId);
     if(!pl){ alert("Playlist não encontrada."); return; }
@@ -1187,7 +1274,6 @@
     const shouldPlay = !!st?.playing;
     if(!savedKey) return;
     try{
-      // tenta preferir off-line primeiro
       const blob = await idbGet(savedKey);
       if(blob){
         if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL=null; }
@@ -1200,14 +1286,13 @@
           const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
           if(target > 0) audio.currentTime = target;
           updateTimeUI();
-          updatePlayingHighlight(); // <— aplica destaque após retomar
+          updatePlayingHighlight();
           if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); }
           else{ setPlayIcon(false); }
         });
         return;
       }
 
-      // fallback: streaming
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
       audio.src = d.url;
       currentKey = savedKey;
@@ -1219,7 +1304,7 @@
         const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
         if(target > 0) audio.currentTime = target;
         updateTimeUI();
-        updatePlayingHighlight(); // <— aplica destaque após retomar
+        updatePlayingHighlight();
         if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); }
         else{ setPlayIcon(false); }
       });
