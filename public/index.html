@@ -343,6 +343,7 @@
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
   const PLAYLISTS_KEY = "loove_user_playlists_v1";
+  const DOWNLOAD_INDEX_KEY = "loove_download_index_v1"; // metadados dos downloads
   const PREMIUM_PREFIX = "PREMIUM/";
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
@@ -511,6 +512,76 @@
   function setFavs(a){ localStorage.setItem(FAVORITES_KEY, JSON.stringify(a)); }
   function isFav(k){ return favs().includes(k); }
 
+  /* ====== DOWNLOADS OFF-LINE (IndexedDB) ====== */
+  let dbPromise = null;
+  function idb(){ // abre/cria DB e objectStore
+    if(dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject)=>{
+      const open = indexedDB.open("loove_downloads_db", 1);
+      open.onupgradeneeded = ()=>{ open.result.createObjectStore("tracks"); };
+      open.onsuccess = ()=> resolve(open.result);
+      open.onerror = ()=> reject(open.error);
+    });
+    return dbPromise;
+  }
+  async function idbPut(key, blob){
+    const db = await idb(); return new Promise((res,rej)=>{
+      const tx = db.transaction("tracks","readwrite");
+      tx.objectStore("tracks").put(blob, key);
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    });
+  }
+  async function idbGet(key){
+    const db = await idb(); return new Promise((res,rej)=>{
+      const tx = db.transaction("tracks","readonly");
+      const req = tx.objectStore("tracks").get(key);
+      req.onsuccess = ()=> res(req.result||null);
+      req.onerror = ()=> rej(req.error);
+    });
+  }
+  async function idbDel(key){
+    const db = await idb(); return new Promise((res,rej)=>{
+      const tx = db.transaction("tracks","readwrite");
+      tx.objectStore("tracks").delete(key);
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    });
+  }
+
+  function loadDownloadIndex(){ try{ return JSON.parse(localStorage.getItem(DOWNLOAD_INDEX_KEY)||"{}"); }catch{ return {}; } }
+  function saveDownloadIndex(idx){ localStorage.setItem(DOWNLOAD_INDEX_KEY, JSON.stringify(idx||{})); }
+  function isDownloaded(key){ return !!loadDownloadIndex()[key]; }
+  async function startDownload(key, name){
+    try{
+      // opcional: pequena cota local (ex.: alerta se somar > ~500MB)
+      const idx = loadDownloadIndex();
+      if(idx[key]){ alert("Esta música já está disponível off-line."); return; }
+
+      // obtém URL de streaming e busca o Blob
+      const d = await api("/api/stream?key="+encodeURIComponent(key));
+      if(!d?.url){ goPremium(); return; }
+      const resp = await fetch(d.url);
+      if(!resp.ok){ goPremium(); return; }
+      const blob = await resp.blob();
+
+      await idbPut(key, blob);
+      const meta = { name: name || key.split("/").pop(), folder: key.split("/").slice(0,-1).join("/"), size: blob.size||0, ts: Date.now() };
+      idx[key] = meta; saveDownloadIndex(idx);
+
+      alert("Download concluído para uso off-line dentro do app.");
+    }catch(e){
+      // se o backend exigir premium, mantém a experiência:
+      goPremium();
+    }
+  }
+  async function removeDownload(key){
+    await idbDel(key);
+    const idx = loadDownloadIndex(); delete idx[key]; saveDownloadIndex(idx);
+    alert("Download removido do off-line.");
+  }
+
+  /* ===== Navegar/entrar em pastas ===== */
   async function enterFolder(prefix){
     currentPrefix = prefix || ""; nextToken = null; items = [];
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
@@ -596,10 +667,12 @@
 
       const menu = document.createElement("div");
       menu.className="t-menu";
+      // label dinâmico conforme estado de download
+      const lblDown = isDownloaded(m.key) ? "Remover download" : "Baixar (Premium)";
       menu.innerHTML = `
         <button class="menu-item miShare">Compartilhar</button>
         <button class="menu-item miFav">${isFav(m.key)?"Remover dos favoritos":"Favoritar"}</button>
-        <button class="menu-item miDown">Baixar (Premium)</button>
+        <button class="menu-item miDown">${lblDown}</button>
         <button class="menu-item miCreatePl">Criar playlist</button>
         <button class="menu-item miAddPl">Adicionar na playlist</button>
       `;
@@ -623,9 +696,13 @@
         like.classList.toggle("active");
         menu.classList.remove("open");
       };
-      menu.querySelector(".miDown").onclick = ()=>{
+      menu.querySelector(".miDown").onclick = async ()=>{
         menu.classList.remove("open");
-        goPremium();
+        if(isDownloaded(m.key)){ await removeDownload(m.key); }
+        else{ await startDownload(m.key, m.name); }
+        // atualiza label do botão após ação
+        const newLbl = isDownloaded(m.key) ? "Remover download" : "Baixar (Premium)";
+        menu.querySelector(".miDown").textContent = newLbl;
       };
       menu.querySelector(".miCreatePl").onclick = ()=>{
         menu.classList.remove("open");
@@ -680,6 +757,7 @@
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
   let currentKey = null, currentName = null, shuffleOn=false, repeatOn=false;
+  let currentObjectURL = null; // para revogar quando trocar a faixa
 
   function setNow(name,key){ nowTitle.textContent = formatTitle(name||""); nowFolder.textContent = (key? parentFolderFromKey(key):"") || "—"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
@@ -716,15 +794,37 @@
 
   el("miShare").onclick = async ()=>{ try{ if(navigator.share){ await navigator.share({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); } else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); } }catch{} };
   el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
-  el("miDown").onclick = goPremium;
+  el("miDown").onclick = ()=>{ if(currentKey){ if(isDownloaded(currentKey)) removeDownload(currentKey); else startDownload(currentKey, currentName||currentKey.split("/").pop()); } };
   el("miCreatePl").onclick = ()=>{ const n=prompt("Nome da nova playlist:"); if(!n) return; createPlaylistInternal(n.trim()); renderMyPlaylists(); alert("Playlist criada!"); };
   el("miSavePl").onclick   = ()=>{ if(!currentKey){ alert("Nada tocando."); return; } openPlaylistPicker(currentKey); };
 
   async function playKey(key,name){
-    const d = await api("/api/stream?key="+encodeURIComponent(key));
-    audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
-    audio.play(); setPlayIcon(true);
-    savePlayback({ key, name, pos: 0, playing: true });
+    try{
+      // limpa URL anterior, se houver
+      if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
+
+      // se baixado, toca do IndexedDB
+      const blob = await idbGet(key);
+      if(blob){
+        currentKey = key; currentName = name;
+        audio.src = URL.createObjectURL(blob);
+        currentObjectURL = audio.src;
+        setNow(name,key);
+        await audio.play(); setPlayIcon(true);
+        savePlayback({ key, name, pos: 0, playing: true });
+        return;
+      }
+
+      // fallback: streaming normal
+      const d = await api("/api/stream?key="+encodeURIComponent(key));
+      if(!d?.url){ goPremium(); return; }
+      audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
+      await audio.play(); setPlayIcon(true);
+      savePlayback({ key, name, pos: 0, playing: true });
+    }catch(e){
+      setPlayIcon(false);
+      alert("Não foi possível tocar esta faixa agora.");
+    }
   }
 
   const saveProgressThrottled = throttle(()=>{
@@ -754,7 +854,7 @@
       case "account": location.href = "/conta.html"; break;
       case "search": el("q").focus(); break;
       case "playlists": openMyPlaylists(); break;
-      case "downloads": location.href = "/downloads.html"; break;
+      case "downloads": location.href = "/downloads.html"; break; /* mantém navegação original (Regra 05) */
       case "favs": renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs"); break;
       case "billing": goPremium(); break;
       case "settings": location.href = "/configuracoes.html"; break;
@@ -797,10 +897,11 @@
 
       const menu = document.createElement("div");
       menu.className="t-menu";
+      const lblDown = isDownloaded(k) ? "Remover download" : "Baixar (Premium)";
       menu.innerHTML = `
         <button class="menu-item miShare">Compartilhar</button>
         <button class="menu-item miUnfav">Remover dos favoritos</button>
-        <button class="menu-item miDown">Baixar (Premium)</button>
+        <button class="menu-item miDown">${lblDown}</button>
         <button class="menu-item miAddPl">Adicionar na playlist</button>
       `;
 
@@ -824,9 +925,13 @@
         renderFavs();
         menu.classList.remove("open");
       };
-      menu.querySelector(".miDown").onclick = ()=>{
+      menu.querySelector(".miDown").onclick = async ()=>{
         menu.classList.remove("open");
-        goPremium();
+        if(isDownloaded(k)){ await removeDownload(k); }
+        else{ await startDownload(k, k.split("/").pop()); }
+        // atualizar label
+        const newLbl = isDownloaded(k) ? "Remover download" : "Baixar (Premium)";
+        menu.querySelector(".miDown").textContent = newLbl;
       };
       menu.querySelector(".miAddPl").onclick = ()=>{
         menu.classList.remove("open");
@@ -860,7 +965,7 @@
     renderMyPlaylists();
   }
 
-  /* NOVO: botão “Criar playlist” na própria tela */
+  /* Botão “Criar playlist” na própria tela */
   el("btnCreatePl").onclick = ()=>{
     const n = prompt("Nome da nova playlist:");
     if(!n) return;
@@ -880,7 +985,7 @@
     pls.forEach(p=>{
       const b = document.createElement("button");
       b.className = "pl-item";
-      b.textContent = p.name || "Playlist";       /* só o nome, sem letras grandes/cover */
+      b.textContent = p.name || "Playlist";
       b.title = `${p.name} (${(p.tracks||[]).length} músicas)`;
       b.onclick = ()=> openPlaylist(p.id);
 
@@ -889,11 +994,23 @@
 
       const rBtn = document.createElement("button"); rBtn.textContent="Renomear";
       const dBtn = document.createElement("button"); dBtn.textContent="Excluir";
-      const dlBtn = document.createElement("button"); dlBtn.textContent="Baixar (Premium)"; /* NOVO EM PLAYLISTS */
+      const dlBtn = document.createElement("button"); dlBtn.textContent="Baixar (Premium)"; // aplica no contexto da playlist inteira (orienta premium)
 
       rBtn.onclick = (ev)=>{ ev.stopPropagation(); menu.classList.remove("open"); renamePlaylist(p.id); };
       dBtn.onclick = (ev)=>{ ev.stopPropagation(); menu.classList.remove("open"); deletePlaylist(p.id); };
-      dlBtn.onclick = (ev)=>{ ev.stopPropagation(); menu.classList.remove("open"); goPremium(); };
+      dlBtn.onclick = async (ev)=>{
+        ev.stopPropagation(); menu.classList.remove("open");
+        if(!(p.tracks||[]).length){ alert("Esta playlist está vazia."); return; }
+        // baixa em lote (simples): itera e chama startDownload
+        const confirmAll = confirm("Baixar todas as músicas desta playlist para off-line? (pode ocupar espaço)");
+        if(!confirmAll) return;
+        for(const k of p.tracks){
+          if(!isDownloaded(k)){
+            await startDownload(k, k.split("/").pop());
+          }
+        }
+        alert("Downloads da playlist finalizados para uso off-line.");
+      };
 
       menu.appendChild(rBtn); menu.appendChild(dBtn); menu.appendChild(dlBtn);
 
@@ -996,6 +1113,26 @@
     const shouldPlay = !!st?.playing;
     if(!savedKey) return;
     try{
+      // tenta preferir off-line primeiro
+      const blob = await idbGet(savedKey);
+      if(blob){
+        if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL=null; }
+        audio.src = URL.createObjectURL(blob); currentObjectURL = audio.src;
+        currentKey = savedKey; currentName = savedName || savedKey.split("/").pop();
+        setNow(currentName, currentKey);
+        audio.addEventListener("loadedmetadata", function onMeta(){
+          audio.removeEventListener("loadedmetadata", onMeta);
+          const dur = audio.duration || 0;
+          const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
+          if(target > 0) audio.currentTime = target;
+          updateTimeUI();
+          if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); }
+          else{ setPlayIcon(false); }
+        });
+        return;
+      }
+
+      // fallback: streaming
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
       audio.src = d.url;
       currentKey = savedKey;
