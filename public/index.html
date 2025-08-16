@@ -25,6 +25,12 @@
      - Só pausa ao apertar Pause (intencional) ou sair da página.
      - Mantido: Shuffle por contexto, DnD em Favoritos/Playlists,
        destaque da faixa, downloads offline (500MB), etc.
+
+     Edição 10 (16/08/2025 15:40 BRT) — Páginas internas
+     - Downloads, Assinaturas, Configurações, Notificações, Ajuda e Conta
+       agora são seções internas (sem trocar de página).
+     - Menu lateral alterna seções internas; player continua tocando.
+     - Lista de downloads com tocar/remover dentro do app.
   ================================================= */
 
   *{box-sizing:border-box}
@@ -59,37 +65,11 @@
   .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
 
-/* logo */
-.logo-wrap{
-  display:flex; 
-  align-items:center; 
-  justify-content:center; 
-  margin-top:20px;
-  text-align:center; /* garante alinhamento em qualquer tela */
-}
-
-.logo{
-  width:min(300px, 40%); /* reduzi mais ~10% em relação ao ajuste anterior */
-  filter:drop-shadow(0 6px 24px rgba(0,0,0,.45));
-  margin: 0 auto; /* força centralização */
-}
-
-/* no celular */
-@media(max-width:600px){ 
-  .logo{ 
-    width:min(190px, 32vw); /* também reduzi 10% para manter proporcional */
-    margin: 0 auto;
-  }
-}
-
-.tagline{
-  margin-top:8px; 
-  text-align:center; 
-  font-weight:900; 
-  letter-spacing:.4px; 
-  color:#fff; 
-  font-size:clamp(18px, 4.5vw, 28px);
-}
+  /* logo */
+  .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
+  .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
+  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
+  .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
 
   /* busca */
   .search{display:flex; align-items:center; gap:10px; margin:16px auto 8px; max-width:820px}
@@ -334,6 +314,64 @@
       </div>
       <div id="myPlGrid" class="pl-grid"></div>
     </section>
+
+    <!-- ========== NOVAS SEÇÕES INTERNAS (Edição 10) ========== -->
+
+    <!-- CONTA -->
+    <section id="viewAccount" class="card" style="display:none">
+      <h3 style="margin-top:0">Conta</h3>
+      <p class="muted">Gerencie suas informações de acesso.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="btnLogout2" class="btn">Sair da conta</button>
+      </div>
+    </section>
+
+    <!-- DOWNLOADS (lista offline) -->
+    <section id="viewDownloads" class="card" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <h3 style="margin:0">Downloads (Off-line)</h3>
+        <div id="dlUsage" class="muted">Uso: 0 MB / 500 MB</div>
+      </div>
+      <div id="dlList"></div>
+    </section>
+
+    <!-- ASSINATURAS -->
+    <section id="viewBilling" class="card" style="display:none">
+      <h3 style="margin-top:0">Assinaturas</h3>
+      <p class="muted">Desbloqueie playlists premium e downloads ilimitados (dentro do limite local).</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="btnGoPremium" class="btn btn-primary">Assinar Premium</button>
+      </div>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section id="viewSettings" class="card" style="display:none">
+      <h3 style="margin-top:0">Configurações</h3>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <label class="muted">
+          Volume do app
+          <input id="cfgVol" type="range" min="0" max="1" step="0.01" style="width:220px; display:block; margin-top:6px">
+        </label>
+        <button id="btnClearPlayback" class="btn">Limpar memória de reprodução</button>
+      </div>
+    </section>
+
+    <!-- NOTIFICAÇÕES -->
+    <section id="viewNotify" class="card" style="display:none">
+      <h3 style="margin-top:0">Notificações</h3>
+      <p class="muted">Central de avisos do aplicativo.</p>
+      <div id="notifBox" class="muted">Nenhuma notificação.</div>
+    </section>
+
+    <!-- AJUDA -->
+    <section id="viewHelp" class="card" style="display:none">
+      <h3 style="margin-top:0">Ajuda</h3>
+      <p class="muted">Perguntas frequentes e suporte.</p>
+      <ul>
+        <li>Como baixar para ouvir off-line? Abra o "⋯" da música e toque <strong>Baixar</strong>.</li>
+        <li>Como criar playlist? Use o botão <strong>+ Criar playlist</strong> em "Minhas playlists".</li>
+      </ul>
+    </section>
   </div>
 
   <!-- LOGIN -->
@@ -404,7 +442,7 @@
   const PLAYLISTS_KEY = "loove_user_playlists_v1";
   const DOWNLOAD_INDEX_KEY = "loove_download_index_v1"; // metadados dos downloads
   const PREMIUM_PREFIX = "PREMIUM/";
-  const PREMIUM_URL = "/assinaturas.html";
+  const PREMIUM_URL = "/assinaturas.html"; // link externo opcional, mantido por compatibilidade
   const el = id => document.getElementById(id);
   const goPremium = ()=> location.href = PREMIUM_URL;
 
@@ -469,6 +507,15 @@
   /* ===== infra ===== */
   function show(id){ el(id).style.display = ""; }
   function hide(id){ el(id).style.display = "none"; }
+
+  // NOVO: controlador central de telas internas (mantém layout original)
+  const VIEWS = ["viewHome","viewList","viewFavs","viewPlaylists","viewDownloads","viewBilling","viewSettings","viewNotify","viewHelp","viewAccount"];
+  function showOnly(viewId){
+    VIEWS.forEach(v => hide(v));
+    show(viewId);
+    updatePlayingHighlight();
+  }
+
   async function api(path, opts = {}) {
     const headers = Object.assign(
       { "Content-Type":"application/json" },
@@ -512,7 +559,7 @@
     currentPlaylistEditingId = null;
     isFavoritesContext = false;
     context = { type:'home', id:null, prefix:'' };
-    hide("viewList"); hide("viewFavs"); hide("viewPlaylists"); show("viewHome");
+    showOnly("viewHome");
     await loadRootFolders();
   }
 
@@ -556,7 +603,7 @@
       jovempan: ["jovem-pan","jovempan","pan"],
       setsremix: ["sets-remix","sets","remix","dj-sets"],
       secret: ["playlist-secreta","secreta","secret"],
-      flashbackgold: ["flashback-gold","flashback gold","flashback"],
+      flashbackgold: ["flashback gold","flashback-gold","flashback"],
       topmundogold: ["top - mundo gold","top-mundo-gold","top - mundo"]
     };
     document.querySelectorAll(".chip-premium").forEach(ch=>{
@@ -652,6 +699,7 @@
       const meta = { name: name || key.split("/").pop(), folder: key.split("/").slice(0,-1).join("/"), size: blob.size||0, ts: Date.now() };
       idx[key] = meta; saveDownloadIndex(idx);
 
+      renderDownloads(); // atualiza lista interna
       alert("Download concluído para uso off-line dentro do app.");
     }catch(e){
       goPremium();
@@ -660,6 +708,7 @@
   async function removeDownload(key){
     await idbDel(key);
     const idx = loadDownloadIndex(); delete idx[key]; saveDownloadIndex(idx);
+    renderDownloads();
     alert("Download removido do off-line.");
   }
 
@@ -669,9 +718,9 @@
     currentPlaylistEditingId = null; // desliga drag de playlist
     isFavoritesContext = false;
     context = { type:'folder', id:null, prefix: currentPrefix };
-    hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
+    showOnly("viewList");
     el("list").innerHTML = "";
-    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
+    if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ showOnly("viewBilling"); return; } // evita navegação externa
     await loadSubfolders();
     await loadMore();
   }
@@ -844,8 +893,6 @@
         menu.classList.remove("open");
         if(isDownloaded(m.key)){ await removeDownload(m.key); }
         else{ await startDownload(m.key, m.name); }
-        const newLbl = isDownloaded(m.key) ? "Remover download" : "Baixar (Premium)";
-        menu.querySelector(".miDown").textContent = newLbl;
       };
       menu.querySelector(".miCreatePl").onclick = ()=>{
         menu.classList.remove("open");
@@ -892,7 +939,7 @@
     currentPlaylistEditingId = null; // desliga drag de playlist
     isFavoritesContext = false;
     context = { type:'search', id:null, prefix:'' };
-    hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
+    showOnly("viewList");
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
   }
@@ -957,7 +1004,6 @@
   audio.addEventListener("loadedmetadata", updateTimeUI);
   audio.addEventListener("ended", async ()=>{
     setPlayIcon(false);
-    // não marcar como userPaused — vamos continuar automaticamente se repeat/shuffle
     if(repeatOn){
       audio.currentTime=0;
       await audio.play().catch(()=>{});
@@ -1016,40 +1062,40 @@
   pSearch.onclick = ()=> el("q").focus();
   pShuffle.onclick = async ()=>{
     shuffleOn = !shuffleOn;
-    pShuffle.classList.toggle("active", shuffleOn);
+    el("pShuffle").classList.toggle("active", shuffleOn);
 
     if(shuffleOn){
       if(!currentKey && (context.type==='favorites' || context.type==='playlist')){
         await rebuildShufflePoolForCurrentTrack();
         if(!shufflePool.length){
           alert("Não há músicas suficientes para sortear neste contexto.");
-          shuffleOn = false; pShuffle.classList.remove("active");
+          shuffleOn = false; el("pShuffle").classList.remove("active");
         }
         return;
       }
       if(!currentKey){
         alert("Toque uma música para usar Ordem Aleatória.");
         shuffleOn = false;
-        pShuffle.classList.remove("active");
+        el("pShuffle").classList.remove("active");
         return;
       }
       await rebuildShufflePoolForCurrentTrack();
       if(!shufflePool.length){
         alert("Não há outras músicas neste contexto para sortear.");
         shuffleOn = false;
-        pShuffle.classList.remove("active");
+        el("pShuffle").classList.remove("active");
       }
     }
   };
-  pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
+  pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; el("pRepeat").classList.toggle("active", repeatOn); audio.loop = repeatOn; };
 
-  pVolume.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.remove("open"); volPop.classList.toggle("open"); };
-  volRange.addEventListener("input", ()=>{ audio.volume = Number(volRange.value); });
+  pVolume.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.remove("open"); el("volPop").classList.toggle("open"); };
+  el("volRange").addEventListener("input", ()=>{ audio.volume = Number(el("volRange").value); });
   document.addEventListener("click", (ev)=>{
-    if(!volPop.contains(ev.target) && !pVolume.contains(ev.target)) volPop.classList.remove("open");
+    if(!el("volPop").contains(ev.target) && !pVolume.contains(ev.target)) el("volPop").classList.remove("open");
     if(!menuPop.contains(ev.target) && !btnKebab.contains(ev.target)) menuPop.classList.remove("open");
   });
-  btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); volPop.classList.remove("open"); };
+  btnKebab.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.toggle("open"); el("volPop").classList.remove("open"); };
 
   el("miShare").onclick = async ()=>{ await shareWithResume({ title: nowTitle.textContent, text: "Ouça no Loove", url: location.href }); };
   el("miFav").onclick = ()=>{ if(currentKey) { toggleFav(currentKey); alert("Favorito atualizado."); } };
@@ -1085,7 +1131,7 @@
       }
 
       const d = await api("/api/stream?key="+encodeURIComponent(key));
-      if(!d?.url){ goPremium(); return; }
+      if(!d?.url){ showOnly("viewBilling"); return; }
       audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
       await audio.play(); setPlayIcon(true); userPaused=false;
       savePlayback({ key, name, pos: 0, playing: true });
@@ -1124,26 +1170,27 @@
   backdrop.addEventListener("click", closeMenu);
   document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeMenu(); });
 
+  // NOVO: navegação interna do menu (sem trocar de página)
   userMenu.addEventListener("click", (e)=>{
     if(!(e.target instanceof HTMLElement)) return;
     const act = e.target.getAttribute("data-act") || e.target.parentElement?.getAttribute("data-act");
     if(!act) return;
     closeMenu();
     switch(act){
-      case "home": goHome(); break;
-      case "account": location.href = "/conta.html"; break;
-      case "search": el("q").focus(); break;
-      case "playlists": openMyPlaylists(); break;
-      case "downloads": location.href = "/downloads.html"; break; /* mantém navegação original */
+      case "home":       goHome(); break;
+      case "account":    showOnly("viewAccount"); break;
+      case "search":     el("q").focus(); break;
+      case "playlists":  openMyPlaylists(); break;
+      case "downloads":  renderDownloads(); showOnly("viewDownloads"); break;
       case "favs":
         renderFavs();
-        hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs");
+        showOnly("viewFavs");
         break;
-      case "billing": goPremium(); break;
-      case "settings": location.href = "/configuracoes.html"; break;
-      case "notify":   location.href = "/notificacoes.html"; break;
-      case "help": location.href = "/ajuda.html"; break;
-      case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
+      case "billing":    showOnly("viewBilling"); break;
+      case "settings":   initSettingsPanel(); showOnly("viewSettings"); break;
+      case "notify":     showOnly("viewNotify"); break;
+      case "help":       showOnly("viewHelp"); break;
+      case "logout":     localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
 
@@ -1221,8 +1268,6 @@
         menu.classList.remove("open");
         if(isDownloaded(k)){ await removeDownload(k); }
         else{ await startDownload(k, k.split("/").pop()); }
-        const newLbl = isDownloaded(k) ? "Remover download" : "Baixar (Premium)";
-        menu.querySelector(".miDown").textContent = newLbl;
       };
       menu.querySelector(".miAddPl").onclick = ()=>{
         menu.classList.remove("open");
@@ -1248,7 +1293,7 @@
     isFavoritesContext = true;
     currentPlaylistEditingId = null;
     context = { type:'favorites', id:null, prefix:'' };
-    show("viewList"); hide("viewHome"); hide("viewFavs"); hide("viewPlaylists");
+    showOnly("viewList");
     renderList();
     playKey(items[0].key, items[0].name);
   };
@@ -1307,7 +1352,7 @@
   function saveUserPlaylists(arr){ localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(arr||[])); }
 
   function openMyPlaylists(){
-    hide("viewHome"); hide("viewList"); hide("viewFavs"); show("viewPlaylists");
+    showOnly("viewPlaylists");
     isFavoritesContext = false;
     currentPlaylistEditingId = null;
     context = { type:'playlist', id:null, prefix:'' }; // lista de capas
@@ -1407,7 +1452,7 @@
     currentPlaylistEditingId = plId;  // ativa drag&drop no #list
     isFavoritesContext = false;
     context = { type:'playlist', id: plId, prefix:'' };
-    hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
+    showOnly("viewList");
     renderList();
     if(!items.length){
       el("list").innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Esta playlist está vazia.</li>`;
@@ -1502,6 +1547,69 @@
       setAndMaybePlay();
     }catch(e){ clearPlayback(); }
   }
+
+  /* ===== Novas funções de UI internas ===== */
+  function bytesToMB(b){ return (b/1024/1024).toFixed(1); }
+  function renderDownloads(){
+    const box = el("dlList"); box.innerHTML = "";
+    const idx = loadDownloadIndex();
+    const keys = Object.keys(idx);
+    el("dlUsage").textContent = `Uso: ${bytesToMB(totalDownloadedBytes())} MB / 500 MB`;
+    if(!keys.length){
+      box.innerHTML = `<div class="muted">Você ainda não baixou músicas para off-line.</div>`;
+      return;
+    }
+    keys.sort((a,b)=> (idx[b].ts||0)-(idx[a].ts||0));
+    keys.forEach(k=>{
+      const meta = idx[k];
+      const row = document.createElement("div");
+      row.className = "track";
+      row.setAttribute("data-key", k);
+
+      const left = document.createElement("div");
+      left.className = "t-left";
+      const bt = document.createElement("button");
+      bt.className = "t-play"; bt.innerHTML="▶";
+      bt.onclick = ()=> playKey(k, meta?.name || k.split("/").pop());
+      left.appendChild(bt);
+
+      const mid = document.createElement("div");
+      mid.className = "t-titleBox";
+      mid.innerHTML = `
+        <div class="t-title">${formatTitle(meta?.name || k.split("/").pop())}</div>
+        <div class="t-sub">${meta?.folder || parentFolderFromKey(k)} • ${bytesToMB(meta?.size||0)} MB</div>
+      `;
+
+      const right = document.createElement("div");
+      right.className = "t-right";
+      const rm = document.createElement("button");
+      rm.className = "t-kebab"; rm.innerHTML = icoKebab();
+      const menu = document.createElement("div");
+      menu.className = "t-menu";
+      menu.innerHTML = `
+        <button class="menu-item miPlay">Tocar</button>
+        <button class="menu-item miDel">Remover download</button>
+      `;
+      rm.onclick = (e)=>{ e.stopPropagation(); const was=menu.classList.contains("open"); closeAllItemMenus(); if(!was) menu.classList.add("open"); };
+      menu.querySelector(".miPlay").onclick = ()=>{ playKey(k, meta?.name || k.split("/").pop()); menu.classList.remove("open"); };
+      menu.querySelector(".miDel").onclick  = async ()=>{ await removeDownload(k); };
+
+      right.appendChild(rm);
+      row.appendChild(left); row.appendChild(mid); row.appendChild(right); row.appendChild(menu);
+      box.appendChild(row);
+    });
+    updatePlayingHighlight();
+  }
+
+  function initSettingsPanel(){
+    el("cfgVol").value = String(audio.volume ?? 1);
+  }
+  el("cfgVol")?.addEventListener("input", ()=>{ audio.volume = Number(el("cfgVol").value); });
+  el("btnClearPlayback")?.addEventListener("click", ()=>{ clearPlayback(); alert("Memória de reprodução limpa."); });
+
+  // Atalhos extras dos botões das novas telas
+  el("btnGoPremium")?.addEventListener("click", ()=> goPremium());
+  el("btnLogout2")?.addEventListener("click", ()=> { localStorage.removeItem(TOKEN_KEY); location.reload(); });
 
   async function ensureAuthAndLoad(){
     await ensureAuth();
