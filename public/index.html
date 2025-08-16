@@ -17,14 +17,13 @@
   }
 
   /* ================== CHANGELOG ==================
-     Edição 09 — Áudio não pausa ao abrir janelas/menus
-     - Proteção contra pausas involuntárias ao abrir:
-       * Drawer do usuário, menus “⋯”, modal de playlists
-       * alert / confirm / prompt (nativos)
-       * share nativo (navigator.share)
-     - Só pausa ao apertar Pause (intencional) ou sair da página.
-     - Mantido: Shuffle por contexto, DnD em Favoritos/Playlists,
-       destaque da faixa, downloads offline (500MB), etc.
+     Edição 10 — Abrir páginas em nova aba (mantém música)
+     - DOWNLOADS, ASSINATURAS, CONFIGURAÇÕES, NOTIFICAÇÕES abrem
+       em nova aba com window.open(..., '_blank', 'noopener,noreferrer').
+       Se bloqueado, cai para location.href (fallback).
+     - Mantidas correções anteriores: áudio não pausa ao abrir menus/modais,
+       Shuffle por contexto (pasta, favoritos, playlists), DnD em Favoritos
+       e Minhas Playlists, destaque da faixa atual, offline 500MB, etc.
   ================================================= */
 
   *{box-sizing:border-box}
@@ -380,7 +379,16 @@
   const PREMIUM_PREFIX = "PREMIUM/";
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
-  const goPremium = ()=> location.href = PREMIUM_URL;
+
+  // abrir nova aba com fallback (para manter áudio tocando)
+  function openInNewTab(url){
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if(!w || w.closed || typeof w.closed==="undefined"){
+      // popup bloqueado → abre na mesma aba (último recurso)
+      location.href = url;
+    }
+  }
+  const goPremium = ()=> openInNewTab(PREMIUM_URL);
 
   /* ===== Memória de reprodução ===== */
   const PLAYBACK_KEY = "loove_playback_v1";
@@ -458,10 +466,9 @@
   let currentPrefix = "", nextToken = null, items = [];
   let premiumFolders = [];
   let isFavoritesContext = false;
-  let currentPlaylistEditingId = null; // habilita drag&drop no #list quando abrimos uma playlist
+  let currentPlaylistEditingId = null;
 
-  // NOVO: contexto para o Shuffle entender de onde sortear
-  // type: 'home' | 'folder' | 'search' | 'favorites' | 'playlist'
+  // contexto do Shuffle: 'home' | 'folder' | 'search' | 'favorites' | 'playlist'
   let context = { type: 'home', id: null, prefix: '' };
 
   async function ensureAuth(){
@@ -558,8 +565,7 @@
   const LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
   let dbPromise = null;
 
-  function idb(){ // abre/cria DB e objectStore
-    if(dbPromise) return dbPromise;
+  function idb(){ if(dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject)=>{
       const open = indexedDB.open("loove_downloads_db", 1);
       open.onupgradeneeded = ()=>{ open.result.createObjectStore("tracks"); };
@@ -596,10 +602,8 @@
   function loadDownloadIndex(){ try{ return JSON.parse(localStorage.getItem(DOWNLOAD_INDEX_KEY)||"{}"); }catch{ return {}; } }
   function saveDownloadIndex(idx){ localStorage.setItem(DOWNLOAD_INDEX_KEY, JSON.stringify(idx||{})); }
   function isDownloaded(key){ return !!loadDownloadIndex()[key]; }
-
   function totalDownloadedBytes(){
-    const idx = loadDownloadIndex();
-    let sum = 0;
+    const idx = loadDownloadIndex(); let sum = 0;
     for(const k in idx){ sum += Number(idx[k]?.size||0); }
     return sum;
   }
@@ -640,7 +644,7 @@
   /* ===== Navegar/entrar em pastas ===== */
   async function enterFolder(prefix){
     currentPrefix = prefix || ""; nextToken = null; items = [];
-    currentPlaylistEditingId = null; // desliga drag de playlist
+    currentPlaylistEditingId = null;
     isFavoritesContext = false;
     context = { type:'folder', id:null, prefix: currentPrefix };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
@@ -681,7 +685,7 @@
   function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
 
-  /* ===== Shuffle limitado ao CONTEXTO ===== */
+  /* ===== Shuffle por CONTEXTO ===== */
   function folderPrefixOf(key=""){
     const p = parentFolderFromKey(key) || "";
     return p ? (p.endsWith("/") ? p : p + "/") : "";
@@ -705,9 +709,7 @@
     if(context.type === 'favorites'){
       const pool = favs().map(k=>({ key:k, name:k.split("/").pop() }))
                          .filter(it => it.key !== currentKey);
-      shufflePool = pool;
-      shufflePrefix = null;
-      return shufflePool;
+      shufflePool = pool; shufflePrefix = null; return shufflePool;
     }
 
     if(context.type === 'playlist' && currentPlaylistEditingId){
@@ -715,14 +717,11 @@
       const pl = pls.find(p=>p.id===currentPlaylistEditingId);
       const pool = (pl?.tracks||[]).map(k=>({ key:k, name:k.split("/").pop() }))
                                    .filter(it => it.key !== currentKey);
-      shufflePool = pool;
-      shufflePrefix = null;
-      return shufflePool;
+      shufflePool = pool; shufflePrefix = null; return shufflePool;
     }
 
     const prefix = folderPrefixOf(currentKey);
     shufflePrefix = prefix;
-
     let pool = (currentPrefix === prefix && Array.isArray(items) && items.length)
       ? items.slice()
       : await loadEntireFolder(prefix);
@@ -863,7 +862,7 @@
   async function doSearch(){
     const q = el("q").value.trim();
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
-    currentPlaylistEditingId = null; // desliga drag de playlist
+    currentPlaylistEditingId = null;
     isFavoritesContext = false;
     context = { type:'search', id:null, prefix:'' };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
@@ -879,50 +878,40 @@
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
   let currentKey = null, currentName = null;
-  let currentObjectURL = null; // para revogar quando trocar a faixa
+  let currentObjectURL = null;
 
-  /* ======== NOVO: proteção anti-pausa involuntária ======== */
-  let userPaused = false; // true apenas quando o usuário clica em Pause
+  /* ======== proteção anti-pausa involuntária ======== */
+  let userPaused = false;
 
   function resumeIfNeeded(){
     if(document.visibilityState==='visible' && audio.src && audio.paused && !userPaused){
       audio.play().catch(()=>{});
     }
   }
-
-  // Reforço quando a aba volta a ficar visível ou a janela volta ao foco
   document.addEventListener('visibilitychange', resumeIfNeeded);
   window.addEventListener('focus', resumeIfNeeded);
 
-  // Protege contra pausas causadas por alert/confirm/prompt
   (function protectAudioDuringNativeModals(){
     const wrap = (orig)=> function(...args){
       const wasPlaying = audio && !audio.paused;
       try{ return orig.apply(this, args); }
-      finally{
-        if(wasPlaying && !userPaused) { audio.play().catch(()=>{}); }
-      }
+      finally{ if(wasPlaying && !userPaused) { audio.play().catch(()=>{}); } }
     };
     window.alert  = wrap(window.alert.bind(window));
     window.confirm= wrap(window.confirm.bind(window));
     window.prompt = wrap(window.prompt.bind(window));
   })();
 
-  // Compartilhamento com retomada do áudio após o sheet nativo
   async function shareWithResume(data){
     const wasPlaying = audio && !audio.paused;
     try{
-      if(navigator.share){
-        await navigator.share(data);
-      }else{
-        await navigator.clipboard.writeText(location.href);
-        alert("Link copiado!");
-      }
+      if(navigator.share){ await navigator.share(data); }
+      else{ await navigator.clipboard.writeText(location.href); alert("Link copiado!"); }
     }finally{
       if(wasPlaying && !userPaused) { audio.play().catch(()=>{}); }
     }
   }
-  /* ======================================================== */
+  /* ================================================= */
 
   function setNow(name,key){ nowTitle.textContent = formatTitle(name||""); nowFolder.textContent = (key? parentFolderFromKey(key):"") || "—"; }
   function fmt(t){ if(!isFinite(t) || t<0) return "0:00"; const m=Math.floor(t/60); const s=Math.floor(t%60); return m+":"+(s<10?"0":"")+s; }
@@ -931,7 +920,6 @@
   audio.addEventListener("loadedmetadata", updateTimeUI);
   audio.addEventListener("ended", async ()=>{
     setPlayIcon(false);
-    // não marcar como userPaused — vamos continuar automaticamente se repeat/shuffle
     if(repeatOn){
       audio.currentTime=0;
       await audio.play().catch(()=>{});
@@ -990,33 +978,33 @@
   pSearch.onclick = ()=> el("q").focus();
   pShuffle.onclick = async ()=>{
     shuffleOn = !shuffleOn;
-    pShuffle.classList.toggle("active", shuffleOn);
+    el("pShuffle").classList.toggle("active", shuffleOn);
 
     if(shuffleOn){
       if(!currentKey && (context.type==='favorites' || context.type==='playlist')){
         await rebuildShufflePoolForCurrentTrack();
         if(!shufflePool.length){
           alert("Não há músicas suficientes para sortear neste contexto.");
-          shuffleOn = false; pShuffle.classList.remove("active");
+          shuffleOn = false; el("pShuffle").classList.remove("active");
         }
         return;
       }
       if(!currentKey){
         alert("Toque uma música para usar Ordem Aleatória.");
-        shuffleOn = false;
-        pShuffle.classList.remove("active");
+        shuffleOn = false; el("pShuffle").classList.remove("active");
         return;
       }
       await rebuildShufflePoolForCurrentTrack();
       if(!shufflePool.length){
         alert("Não há outras músicas neste contexto para sortear.");
-        shuffleOn = false;
-        pShuffle.classList.remove("active");
+        shuffleOn = false; el("pShuffle").classList.remove("active");
       }
     }
   };
-  pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; pRepeat.classList.toggle("active", repeatOn); audio.loop = repeatOn; };
+  pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; el("pRepeat").classList.toggle("active", repeatOn); audio.loop = repeatOn; };
 
+  const volPop = el("volPop"), pVolume = el("pVolume"), volRange = el("volRange");
+  const btnKebab = el("btnKebab"), menuPop = el("menuPop");
   pVolume.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.remove("open"); volPop.classList.toggle("open"); };
   volRange.addEventListener("input", ()=>{ audio.volume = Number(volRange.value); });
   document.addEventListener("click", (ev)=>{
@@ -1108,14 +1096,17 @@
       case "account": location.href = "/conta.html"; break;
       case "search": el("q").focus(); break;
       case "playlists": openMyPlaylists(); break;
-      case "downloads": location.href = "/downloads.html"; break; /* mantém navegação original */
+
+      // ✅ Abre em nova aba para manter o player tocando
+      case "downloads": openInNewTab("/downloads.html"); break;
+      case "billing":   goPremium(); break;
+      case "settings":  openInNewTab("/configuracoes.html"); break;
+      case "notify":    openInNewTab("/notificacoes.html"); break;
+
       case "favs":
         renderFavs();
         hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs");
         break;
-      case "billing": goPremium(); break;
-      case "settings": location.href = "/configuracoes.html"; break;
-      case "notify":   location.href = "/notificacoes.html"; break;
       case "help": location.href = "/ajuda.html"; break;
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
@@ -1248,7 +1239,7 @@
     el.addEventListener("dragend", ()=>{
       el.classList.remove("dragging");
       dragFromIndex = null;
-      resumeIfNeeded(); // se algum browser pausar durante o DnD
+      resumeIfNeeded();
     });
     el.addEventListener("dragover", (e)=>{ e.preventDefault(); });
     el.addEventListener("drop", (e)=>{
@@ -1284,7 +1275,7 @@
     hide("viewHome"); hide("viewList"); hide("viewFavs"); show("viewPlaylists");
     isFavoritesContext = false;
     currentPlaylistEditingId = null;
-    context = { type:'playlist', id:null, prefix:'' }; // lista de capas
+    context = { type:'playlist', id:null, prefix:'' }; // tela de capas
     renderMyPlaylists();
   }
 
@@ -1378,7 +1369,7 @@
     if(!pl){ alert("Playlist não encontrada."); return; }
     const tr = (pl.tracks||[]);
     items = tr.map(k=>({ key:k, name:k.split("/").pop() }));
-    currentPlaylistEditingId = plId;  // ativa drag&drop no #list
+    currentPlaylistEditingId = plId;  // ativa DnD
     isFavoritesContext = false;
     context = { type:'playlist', id: plId, prefix:'' };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
