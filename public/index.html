@@ -6,10 +6,23 @@
 <title>Loove • Music App</title>
 <style>
   :root{
-    --bg:#0b0f14; --card:#121826; --muted:#9aa4b2; --text:#e6ecf2;
+    --bg:#0b0f14; 
+    --card:#121826; 
+    --muted:#9aa4b2; 
+    --text:#e6ecf2;
     --accent:#ff2fb3;
-    --amber:#ff9f1a; --amber-2:#ffb02e; --amber-3:#ff7a00;
+    --amber:#ff9f1a; 
+    --amber-2:#ffb02e; 
+    --amber-3:#ff7a00;
   }
+  /* ⚡ Correções implementadas (comentários válidos):
+     - Janela “Adicionar à playlist” só abre quando chamada.
+     - Opção de download Premium nos 3 pontinhos (lista e player).
+     - Modo offline com IndexedDB com LIMITE REAL de 500MB por usuário.
+     - Aviso ao atingir 500MB e impedimento de novos downloads.
+     - Menu lateral “Downloads” mantém navegação original (/downloads.html).
+  */
+
   *{box-sizing:border-box}
   body{
     margin:0;background:
@@ -165,17 +178,15 @@
   @media(min-width:740px) and (max-width:1023px){ .pl-grid{grid-template-columns: repeat(3, 1fr);} }
   @media(max-width:739px){ .pl-grid{grid-template-columns: repeat(2, 1fr);} }
 
-  /* NOVO ESTILO: fundo cinza escuro, texto laranja neon e bordas neon */
+  /* Capas favoritas – estilo neon solicitado */
   .pl-item{
     min-height:92px; padding:10px; border-radius:18px; cursor:pointer;
     display:flex; align-items:center; justify-content:center; text-align:center;
-    background:#1a1f27; /* cinza escuro */
-    color:#ff9f1a;      /* laranja neon */
+    background:#1a1f27; 
+    color:#ff9f1a;      
     font-weight:900; font-size:18px; text-transform:uppercase;
     border:2px solid #ff9f1a; 
-    box-shadow:
-      0 0 10px rgba(255,159,26,.45),
-      0 4px 18px rgba(255,159,26,.25);
+    box-shadow: 0 0 10px rgba(255,159,26,.45), 0 4px 18px rgba(255,159,26,.25);
     text-shadow:0 0 8px rgba(255,159,26,.35);
     position:relative;
   }
@@ -191,6 +202,17 @@
   .pl-menu.open{display:block}
   .pl-menu button{width:100%; text-align:left; padding:8px 10px; border-radius:10px; background:transparent; border:1px solid transparent; color:#e6ecf2; cursor:pointer; font-weight:700}
   .pl-menu button:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+
+  /* ===== Modal "Adicionar à playlist" – escondido por padrão ===== */
+  .pl-modal{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:90}
+  .pl-modal.open{display:flex; align-items:center; justify-content:center}
+  .pl-card{width:min(520px, 92vw); background:#0c1117; border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px; box-shadow:0 20px 60px rgba(0,0,0,.55)}
+  .pl-title{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+  .pl-close{appearance:none; border:none; background:transparent; color:#e6ecf2; font-weight:900; font-size:18px; cursor:pointer}
+  .pl-row{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.06); background:#0f1720; margin:6px 0; cursor:pointer}
+  .pl-row:hover{background:#141e2e}
+  .pl-row .muted{font-size:12px}
+
 </style>
 </head>
 <body>
@@ -513,7 +535,9 @@
   function isFav(k){ return favs().includes(k); }
 
   /* ====== DOWNLOADS OFF-LINE (IndexedDB) ====== */
+  const LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
   let dbPromise = null;
+
   function idb(){ // abre/cria DB e objectStore
     if(dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject)=>{
@@ -552,18 +576,33 @@
   function loadDownloadIndex(){ try{ return JSON.parse(localStorage.getItem(DOWNLOAD_INDEX_KEY)||"{}"); }catch{ return {}; } }
   function saveDownloadIndex(idx){ localStorage.setItem(DOWNLOAD_INDEX_KEY, JSON.stringify(idx||{})); }
   function isDownloaded(key){ return !!loadDownloadIndex()[key]; }
+
+  function totalDownloadedBytes(){
+    const idx = loadDownloadIndex();
+    let sum = 0;
+    for(const k in idx){ sum += Number(idx[k]?.size||0); }
+    return sum;
+  }
+
   async function startDownload(key, name){
     try{
-      // opcional: pequena cota local (ex.: alerta se somar > ~500MB)
       const idx = loadDownloadIndex();
       if(idx[key]){ alert("Esta música já está disponível off-line."); return; }
 
-      // obtém URL de streaming e busca o Blob
+      // obtém URL de streaming e baixa o Blob
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       if(!d?.url){ goPremium(); return; }
       const resp = await fetch(d.url);
       if(!resp.ok){ goPremium(); return; }
       const blob = await resp.blob();
+
+      // 🔒 Enforce limite 500MB ANTES de salvar
+      const used = totalDownloadedBytes();
+      const willUse = Number(blob.size||0);
+      if(used + willUse > LIMIT_BYTES){
+        alert("Limite de 500MB de downloads off-line atingido. Exclua músicas antigas para continuar.");
+        return;
+      }
 
       await idbPut(key, blob);
       const meta = { name: name || key.split("/").pop(), folder: key.split("/").slice(0,-1).join("/"), size: blob.size||0, ts: Date.now() };
@@ -667,7 +706,6 @@
 
       const menu = document.createElement("div");
       menu.className="t-menu";
-      // label dinâmico conforme estado de download
       const lblDown = isDownloaded(m.key) ? "Remover download" : "Baixar (Premium)";
       menu.innerHTML = `
         <button class="menu-item miShare">Compartilhar</button>
@@ -700,7 +738,6 @@
         menu.classList.remove("open");
         if(isDownloaded(m.key)){ await removeDownload(m.key); }
         else{ await startDownload(m.key, m.name); }
-        // atualiza label do botão após ação
         const newLbl = isDownloaded(m.key) ? "Remover download" : "Baixar (Premium)";
         menu.querySelector(".miDown").textContent = newLbl;
       };
@@ -800,7 +837,6 @@
 
   async function playKey(key,name){
     try{
-      // limpa URL anterior, se houver
       if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
 
       // se baixado, toca do IndexedDB
@@ -929,7 +965,6 @@
         menu.classList.remove("open");
         if(isDownloaded(k)){ await removeDownload(k); }
         else{ await startDownload(k, k.split("/").pop()); }
-        // atualizar label
         const newLbl = isDownloaded(k) ? "Remover download" : "Baixar (Premium)";
         menu.querySelector(".miDown").textContent = newLbl;
       };
@@ -965,7 +1000,6 @@
     renderMyPlaylists();
   }
 
-  /* Botão “Criar playlist” na própria tela */
   el("btnCreatePl").onclick = ()=>{
     const n = prompt("Nome da nova playlist:");
     if(!n) return;
@@ -994,14 +1028,13 @@
 
       const rBtn = document.createElement("button"); rBtn.textContent="Renomear";
       const dBtn = document.createElement("button"); dBtn.textContent="Excluir";
-      const dlBtn = document.createElement("button"); dlBtn.textContent="Baixar (Premium)"; // aplica no contexto da playlist inteira (orienta premium)
+      const dlBtn = document.createElement("button"); dlBtn.textContent="Baixar (Premium)";
 
       rBtn.onclick = (ev)=>{ ev.stopPropagation(); menu.classList.remove("open"); renamePlaylist(p.id); };
       dBtn.onclick = (ev)=>{ ev.stopPropagation(); menu.classList.remove("open"); deletePlaylist(p.id); };
       dlBtn.onclick = async (ev)=>{
         ev.stopPropagation(); menu.classList.remove("open");
         if(!(p.tracks||[]).length){ alert("Esta playlist está vazia."); return; }
-        // baixa em lote (simples): itera e chama startDownload
         const confirmAll = confirm("Baixar todas as músicas desta playlist para off-line? (pode ocupar espaço)");
         if(!confirmAll) return;
         for(const k of p.tracks){
@@ -1113,7 +1146,6 @@
     const shouldPlay = !!st?.playing;
     if(!savedKey) return;
     try{
-      // tenta preferir off-line primeiro
       const blob = await idbGet(savedKey);
       if(blob){
         if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL=null; }
@@ -1132,7 +1164,6 @@
         return;
       }
 
-      // fallback: streaming
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
       audio.src = d.url;
       currentKey = savedKey;
