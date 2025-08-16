@@ -59,22 +59,27 @@
   .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
 
- /* logo */
+/* logo */
 .logo-wrap{
   display:flex; 
   align-items:center; 
   justify-content:center; 
-  margin-top:20px
+  margin-top:20px;
+  text-align:center; /* garante alinhamento em qualquer tela */
 }
 
 .logo{
-  width:min(340px, 44%); /* metade do tamanho original */
+  width:min(300px, 40%); /* reduzi mais ~10% em relação ao ajuste anterior */
   filter:drop-shadow(0 6px 24px rgba(0,0,0,.45));
+  margin: 0 auto; /* força centralização */
 }
 
 /* no celular */
 @media(max-width:600px){ 
-  .logo{ width:min(210px, 34vw); } /* metade do tamanho original */
+  .logo{ 
+    width:min(190px, 32vw); /* também reduzi 10% para manter proporcional */
+    margin: 0 auto;
+  }
 }
 
 .tagline{
@@ -83,7 +88,7 @@
   font-weight:900; 
   letter-spacing:.4px; 
   color:#fff; 
-  font-size:clamp(18px, 4.5vw, 28px)
+  font-size:clamp(18px, 4.5vw, 28px);
 }
 
   /* busca */
