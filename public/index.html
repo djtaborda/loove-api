@@ -6,24 +6,25 @@
 <title>Loove • Music App</title>
 <style>
   :root{
-    --bg:#0b0f14;
-    --card:#121826;
-    --muted:#9aa4b2;
+    --bg:#0b0f14; 
+    --card:#121826; 
+    --muted:#9aa4b2; 
     --text:#e6ecf2;
     --accent:#ff2fb3;
-    --amber:#ff9f1a;
-    --amber-2:#ffb02e;
+    --amber:#ff9f1a; 
+    --amber-2:#ffb02e; 
     --amber-3:#ff7a00;
   }
 
   /* ================== CHANGELOG ==================
-     Edição 10 — Abrir páginas em nova aba (mantém música)
-     - DOWNLOADS, ASSINATURAS, CONFIGURAÇÕES, NOTIFICAÇÕES abrem
-       em nova aba com window.open(..., '_blank', 'noopener,noreferrer').
-       Se bloqueado, cai para location.href (fallback).
-     - Mantidas correções anteriores: áudio não pausa ao abrir menus/modais,
-       Shuffle por contexto (pasta, favoritos, playlists), DnD em Favoritos
-       e Minhas Playlists, destaque da faixa atual, offline 500MB, etc.
+     Edição 11 — Correção e novas abas
+     - Corrigido: app não aparecia por "Identifier already declared"
+       (variáveis duplicadas). Unifiquei declarações.
+     - CONTA, ASSINATURAS, DOWNLOADS, CONFIGURAÇÕES, NOTIFICAÇÕES e
+       AJUDA agora abrem em nova aba (mantém o som tocando).
+     - Mantidas melhorias anteriores: destaque da faixa tocando,
+       Shuffle por contexto (pasta/favoritos/playlist), DnD em
+       Favoritos e Minhas Playlists, offline 500MB, etc.
   ================================================= */
 
   *{box-sizing:border-box}
@@ -193,10 +194,10 @@
   .pl-item{
     min-height:92px; padding:10px; border-radius:18px; cursor:pointer;
     display:flex; align-items:center; justify-content:center; text-align:center;
-    background:#1a1f27;
-    color:#ff9f1a;
+    background:#1a1f27; 
+    color:#ff9f1a;      
     font-weight:900; font-size:18px; text-transform:uppercase;
-    border:2px solid #ff9f1a;
+    border:2px solid #ff9f1a; 
     box-shadow: 0 0 10px rgba(255,159,26,.45), 0 4px 18px rgba(255,159,26,.25);
     text-shadow:0 0 8px rgba(255,159,26,.35);
     position:relative;
@@ -214,7 +215,7 @@
   .pl-menu button{width:100%; text-align:left; padding:8px 10px; border-radius:10px; background:transparent; border:1px solid transparent; color:#e6ecf2; cursor:pointer; font-weight:700}
   .pl-menu button:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
 
-  /* ===== Modal "Adicionar à playlist" (escondido por padrão) ===== */
+  /* ===== Modal "Adicionar à playlist" ===== */
   .pl-modal{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:90}
   .pl-modal.open{display:flex; align-items:center; justify-content:center}
   .pl-card{width:min(520px, 92vw); background:#0c1117; border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px; box-shadow:0 20px 60px rgba(0,0,0,.55)}
@@ -380,13 +381,10 @@
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
 
-  // abrir nova aba com fallback (para manter áudio tocando)
+  // abrir nova aba com fallback (mantém áudio tocando)
   function openInNewTab(url){
     const w = window.open(url, '_blank', 'noopener,noreferrer');
-    if(!w || w.closed || typeof w.closed==="undefined"){
-      // popup bloqueado → abre na mesma aba (último recurso)
-      location.href = url;
-    }
+    if(!w || w.closed || typeof w.closed==="undefined"){ location.href = url; }
   }
   const goPremium = ()=> openInNewTab(PREMIUM_URL);
 
@@ -468,7 +466,7 @@
   let isFavoritesContext = false;
   let currentPlaylistEditingId = null;
 
-  // contexto do Shuffle: 'home' | 'folder' | 'search' | 'favorites' | 'playlist'
+  // contexto do Shuffle
   let context = { type: 'home', id: null, prefix: '' };
 
   async function ensureAuth(){
@@ -874,7 +872,8 @@
   /* ===== PLAYER ===== */
   const audio = el("audio"); const seek = el("seek"); const nowTitle = el("nowTitle"); const nowFolder = el("nowFolder"); const nowTime = el("nowTime");
   const pPlay = el("pPlay"); const pPrev = el("pPrev"); const pNext = el("pNext"); const pHome = el("pHome"); const pSearch = el("pSearch");
-  const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
+  const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
+  const pVolume = el("pVolume"); const volPop = el("volPop"); const volRange = el("volRange");
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
   let currentKey = null, currentName = null;
@@ -1003,8 +1002,6 @@
   };
   pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; el("pRepeat").classList.toggle("active", repeatOn); audio.loop = repeatOn; };
 
-  const volPop = el("volPop"), pVolume = el("pVolume"), volRange = el("volRange");
-  const btnKebab = el("btnKebab"), menuPop = el("menuPop");
   pVolume.onclick = (e)=>{ e.stopPropagation(); menuPop.classList.remove("open"); volPop.classList.toggle("open"); };
   volRange.addEventListener("input", ()=>{ audio.volume = Number(volRange.value); });
   document.addEventListener("click", (ev)=>{
@@ -1093,21 +1090,17 @@
     closeMenu();
     switch(act){
       case "home": goHome(); break;
-      case "account": location.href = "/conta.html"; break;
+      case "account":   openInNewTab("/conta.html"); break;           // nova aba
       case "search": el("q").focus(); break;
       case "playlists": openMyPlaylists(); break;
-
-      // ✅ Abre em nova aba para manter o player tocando
-      case "downloads": openInNewTab("/downloads.html"); break;
-      case "billing":   goPremium(); break;
-      case "settings":  openInNewTab("/configuracoes.html"); break;
-      case "notify":    openInNewTab("/notificacoes.html"); break;
-
-      case "favs":
-        renderFavs();
-        hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs");
+      case "downloads": openInNewTab("/downloads.html"); break;        // nova aba
+      case "favs": 
+        renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs"); 
         break;
-      case "help": location.href = "/ajuda.html"; break;
+      case "billing":   goPremium(); break;                            // nova aba (assinaturas)
+      case "settings":  openInNewTab("/configuracoes.html"); break;    // nova aba
+      case "notify":    openInNewTab("/notificacoes.html"); break;     // nova aba
+      case "help":      openInNewTab("/ajuda.html"); break;            // nova aba
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
