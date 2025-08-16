@@ -17,14 +17,13 @@
   }
 
   /* ================== CHANGELOG ==================
-     Edição 11 — Correção e novas abas
-     - Corrigido: app não aparecia por "Identifier already declared"
-       (variáveis duplicadas). Unifiquei declarações.
-     - CONTA, ASSINATURAS, DOWNLOADS, CONFIGURAÇÕES, NOTIFICAÇÕES e
-       AJUDA agora abrem em nova aba (mantém o som tocando).
-     - Mantidas melhorias anteriores: destaque da faixa tocando,
-       Shuffle por contexto (pasta/favoritos/playlist), DnD em
-       Favoritos e Minhas Playlists, offline 500MB, etc.
+     Edição 12 — Painéis internos (não para a música)
+     - Em vez de abrir nova guia, páginas (Conta, Assinaturas,
+       Downloads, Configurações, Notificações, Ajuda) abrem em um
+       painel overlay com <iframe>, mantendo o player tocando.
+     - Mantido: correção de variáveis duplicadas, DnD em
+       Favoritos/Playlists, Shuffle por contexto, destaque da faixa,
+       offline 500MB, etc.
   ================================================= */
 
   *{box-sizing:border-box}
@@ -224,6 +223,14 @@
   .pl-row{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.06); background:#0f1720; margin:6px 0; cursor:pointer}
   .pl-row:hover{background:#141e2e}
   .pl-row .muted{font-size:12px}
+
+  /* ===== Painel interno (iframe) ===== */
+  .page-overlay{position:fixed; left:0; right:0; top:0; bottom:170px; z-index:65; display:none; background:linear-gradient(180deg, rgba(9,13,19,.94), rgba(9,13,19,.96))}
+  .page-overlay.open{display:block}
+  .page-head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); background:#0c1117}
+  .page-title{font-weight:900}
+  .page-close{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:#e6ecf2; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:800}
+  .page-frame{width:100%; height:calc(100% - 48px); border:0; display:block; background:#0b0f14}
 </style>
 </head>
 <body>
@@ -332,6 +339,15 @@
     </div>
   </div>
 
+  <!-- PAINEL INTERNO (iframe) -->
+  <div id="pageOverlay" class="page-overlay" aria-hidden="true">
+    <div class="page-head">
+      <div id="pageTitle" class="page-title"> </div>
+      <button id="pageClose" class="page-close">Fechar</button>
+    </div>
+    <iframe id="pageFrame" class="page-frame" src="about:blank"></iframe>
+  </div>
+
   <!-- =================== PLAYER =================== -->
   <footer class="player">
     <div class="player-shell">
@@ -376,17 +392,26 @@
   const TOKEN_KEY = "loove_token";
   const FAVORITES_KEY = "loove_favs_v1";
   const PLAYLISTS_KEY = "loove_user_playlists_v1";
-  const DOWNLOAD_INDEX_KEY = "loove_download_index_v1"; // metadados dos downloads
+  const DOWNLOAD_INDEX_KEY = "loove_download_index_v1";
   const PREMIUM_PREFIX = "PREMIUM/";
   const PREMIUM_URL = "/assinaturas.html";
   const el = id => document.getElementById(id);
 
-  // abrir nova aba com fallback (mantém áudio tocando)
-  function openInNewTab(url){
-    const w = window.open(url, '_blank', 'noopener,noreferrer');
-    if(!w || w.closed || typeof w.closed==="undefined"){ location.href = url; }
+  // painel interno (iframe) — mantém a guia e o áudio
+  function openPanel(url, title){
+    const ov = el("pageOverlay"), fr = el("pageFrame"), tt = el("pageTitle");
+    tt.textContent = title || "Página";
+    fr.src = url || "about:blank";
+    ov.classList.add("open"); ov.setAttribute("aria-hidden","false");
   }
-  const goPremium = ()=> openInNewTab(PREMIUM_URL);
+  function closePanel(){
+    const ov = el("pageOverlay"), fr = el("pageFrame");
+    fr.src = "about:blank";
+    ov.classList.remove("open"); ov.setAttribute("aria-hidden","true");
+  }
+  el("pageClose").onclick = closePanel;
+
+  const goPremium = ()=> openPanel(PREMIUM_URL, "Assinaturas");
 
   /* ===== Memória de reprodução ===== */
   const PLAYBACK_KEY = "loove_playback_v1";
@@ -466,7 +491,6 @@
   let isFavoritesContext = false;
   let currentPlaylistEditingId = null;
 
-  // contexto do Shuffle
   let context = { type: 'home', id: null, prefix: '' };
 
   async function ensureAuth(){
@@ -492,6 +516,7 @@
     isFavoritesContext = false;
     context = { type:'home', id:null, prefix:'' };
     hide("viewList"); hide("viewFavs"); hide("viewPlaylists"); show("viewHome");
+    closePanel();
     await loadRootFolders();
   }
 
@@ -560,9 +585,7 @@
   function isFav(k){ return favs().includes(k); }
 
   /* ====== DOWNLOADS OFF-LINE (IndexedDB) ====== */
-  const LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
-  let dbPromise = null;
-
+  const LIMIT_BYTES = 500 * 1024 * 1024; let dbPromise = null;
   function idb(){ if(dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject)=>{
       const open = indexedDB.open("loove_downloads_db", 1);
@@ -596,42 +619,26 @@
       tx.onerror = ()=> rej(tx.error);
     });
   }
-
   function loadDownloadIndex(){ try{ return JSON.parse(localStorage.getItem(DOWNLOAD_INDEX_KEY)||"{}"); }catch{ return {}; } }
   function saveDownloadIndex(idx){ localStorage.setItem(DOWNLOAD_INDEX_KEY, JSON.stringify(idx||{})); }
   function isDownloaded(key){ return !!loadDownloadIndex()[key]; }
-  function totalDownloadedBytes(){
-    const idx = loadDownloadIndex(); let sum = 0;
-    for(const k in idx){ sum += Number(idx[k]?.size||0); }
-    return sum;
-  }
+  function totalDownloadedBytes(){ const idx = loadDownloadIndex(); let sum = 0; for(const k in idx){ sum += Number(idx[k]?.size||0); } return sum; }
 
   async function startDownload(key, name){
     try{
       const idx = loadDownloadIndex();
       if(idx[key]){ alert("Esta música já está disponível off-line."); return; }
-
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       if(!d?.url){ goPremium(); return; }
-      const resp = await fetch(d.url);
-      if(!resp.ok){ goPremium(); return; }
+      const resp = await fetch(d.url); if(!resp.ok){ goPremium(); return; }
       const blob = await resp.blob();
-
-      const used = totalDownloadedBytes();
-      const willUse = Number(blob.size||0);
-      if(used + willUse > LIMIT_BYTES){
-        alert("Limite de 500MB de downloads off-line atingido. Exclua músicas antigas para continuar.");
-        return;
-      }
-
+      const used = totalDownloadedBytes(); const willUse = Number(blob.size||0);
+      if(used + willUse > LIMIT_BYTES){ alert("Limite de 500MB atingido. Exclua músicas antigas."); return; }
       await idbPut(key, blob);
       const meta = { name: name || key.split("/").pop(), folder: key.split("/").slice(0,-1).join("/"), size: blob.size||0, ts: Date.now() };
       idx[key] = meta; saveDownloadIndex(idx);
-
-      alert("Download concluído para uso off-line dentro do app.");
-    }catch(e){
-      goPremium();
-    }
+      alert("Download concluído para uso off-line.");
+    }catch(e){ goPremium(); }
   }
   async function removeDownload(key){
     await idbDel(key);
@@ -646,7 +653,7 @@
     isFavoritesContext = false;
     context = { type:'folder', id:null, prefix: currentPrefix };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
-    el("list").innerHTML = "";
+    el("list").innerHTML = ""; closePanel();
     if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
     await loadSubfolders();
     await loadMore();
@@ -698,8 +705,7 @@
     return arr;
   }
   let shuffleOn=false, repeatOn=false;
-  let shufflePool = [];
-  let shufflePrefix = null;
+  let shufflePool = []; let shufflePrefix = null;
 
   async function rebuildShufflePoolForCurrentTrack(){
     if(!currentKey) { shufflePool=[]; shufflePrefix=null; return []; }
@@ -727,7 +733,6 @@
     shufflePool = pool.filter(it => it.key !== currentKey);
     return shufflePool;
   }
-
   function playRandomFromShufflePool(){
     if(!shufflePool || !shufflePool.length) return;
     const r = Math.floor(Math.random() * shufflePool.length);
@@ -839,7 +844,6 @@
       LI.appendChild(menu);
       UL.appendChild(LI);
     });
-
     updatePlayingHighlight();
   }
 
@@ -864,6 +868,7 @@
     isFavoritesContext = false;
     context = { type:'search', id:null, prefix:'' };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
+    closePanel();
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
   }
@@ -876,12 +881,10 @@
   const pVolume = el("pVolume"); const volPop = el("volPop"); const volRange = el("volRange");
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
-  let currentKey = null, currentName = null;
-  let currentObjectURL = null;
+  let currentKey = null, currentName = null, currentObjectURL = null;
 
   /* ======== proteção anti-pausa involuntária ======== */
   let userPaused = false;
-
   function resumeIfNeeded(){
     if(document.visibilityState==='visible' && audio.src && audio.paused && !userPaused){
       audio.play().catch(()=>{});
@@ -900,7 +903,6 @@
     window.confirm= wrap(window.confirm.bind(window));
     window.prompt = wrap(window.prompt.bind(window));
   })();
-
   async function shareWithResume(data){
     const wasPlaying = audio && !audio.paused;
     try{
@@ -928,15 +930,13 @@
     if(shuffleOn){
       if(context.type === 'favorites' || context.type === 'playlist'){
         if(!shufflePool.length) await rebuildShufflePoolForCurrentTrack();
-        playRandomFromShufflePool();
-        return;
+        playRandomFromShufflePool(); return;
       }else{
         const curFolder = folderPrefixOf(currentKey);
         if(!shufflePool.length || shufflePrefix !== curFolder){
           await rebuildShufflePoolForCurrentTrack();
         }
-        playRandomFromShufflePool();
-        return;
+        playRandomFromShufflePool(); return;
       }
     }
     if(items.length){
@@ -957,15 +957,13 @@
     if(shuffleOn){
       if(context.type === 'favorites' || context.type === 'playlist'){
         if(!shufflePool.length) await rebuildShufflePoolForCurrentTrack();
-        playRandomFromShufflePool();
-        return;
+        playRandomFromShufflePool(); return;
       }else{
         const curFolder = folderPrefixOf(currentKey);
         if(!shufflePool.length || shufflePrefix !== curFolder){
           await rebuildShufflePoolForCurrentTrack();
         }
-        playRandomFromShufflePool();
-        return;
+        playRandomFromShufflePool(); return;
       }
     }
     if(items.length){
@@ -978,26 +976,15 @@
   pShuffle.onclick = async ()=>{
     shuffleOn = !shuffleOn;
     el("pShuffle").classList.toggle("active", shuffleOn);
-
     if(shuffleOn){
       if(!currentKey && (context.type==='favorites' || context.type==='playlist')){
         await rebuildShufflePoolForCurrentTrack();
-        if(!shufflePool.length){
-          alert("Não há músicas suficientes para sortear neste contexto.");
-          shuffleOn = false; el("pShuffle").classList.remove("active");
-        }
+        if(!shufflePool.length){ alert("Não há músicas suficientes para sortear neste contexto."); shuffleOn = false; el("pShuffle").classList.remove("active"); }
         return;
       }
-      if(!currentKey){
-        alert("Toque uma música para usar Ordem Aleatória.");
-        shuffleOn = false; el("pShuffle").classList.remove("active");
-        return;
-      }
+      if(!currentKey){ alert("Toque uma música para usar Ordem Aleatória."); shuffleOn = false; el("pShuffle").classList.remove("active"); return; }
       await rebuildShufflePoolForCurrentTrack();
-      if(!shufflePool.length){
-        alert("Não há outras músicas neste contexto para sortear.");
-        shuffleOn = false; el("pShuffle").classList.remove("active");
-      }
+      if(!shufflePool.length){ alert("Não há outras músicas neste contexto para sortear."); shuffleOn = false; el("pShuffle").classList.remove("active"); }
     }
   };
   pRepeat.onclick  = ()=>{ repeatOn =!repeatOn; el("pRepeat").classList.toggle("active", repeatOn); audio.loop = repeatOn; };
@@ -1019,47 +1006,24 @@
   async function playKey(key,name){
     try{
       if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
-
       const blob = await idbGet(key);
       if(blob){
         currentKey = key; currentName = name;
-        audio.src = URL.createObjectURL(blob);
-        currentObjectURL = audio.src;
+        audio.src = URL.createObjectURL(blob); currentObjectURL = audio.src;
         setNow(name,key);
         await audio.play(); setPlayIcon(true); userPaused=false;
         savePlayback({ key, name, pos: 0, playing: true });
         updatePlayingHighlight();
-
-        if(shuffleOn){
-          if(context.type === 'favorites' || context.type === 'playlist'){
-            rebuildShufflePoolForCurrentTrack().catch(()=>{});
-          }else{
-            const curFolder = folderPrefixOf(currentKey);
-            if(shufflePrefix !== curFolder){
-              rebuildShufflePoolForCurrentTrack().catch(()=>{});
-            }
-          }
-        }
+        if(shuffleOn){ rebuildShufflePoolForCurrentTrack().catch(()=>{}); }
         return;
       }
-
       const d = await api("/api/stream?key="+encodeURIComponent(key));
       if(!d?.url){ goPremium(); return; }
       audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
       await audio.play(); setPlayIcon(true); userPaused=false;
       savePlayback({ key, name, pos: 0, playing: true });
       updatePlayingHighlight();
-
-      if(shuffleOn){
-        if(context.type === 'favorites' || context.type === 'playlist'){
-          rebuildShufflePoolForCurrentTrack().catch(()=>{});
-        }else{
-          const curFolder = folderPrefixOf(currentKey);
-          if(shufflePrefix !== curFolder){
-            rebuildShufflePoolForCurrentTrack().catch(()=>{});
-          }
-        }
-      }
+      if(shuffleOn){ rebuildShufflePoolForCurrentTrack().catch(()=>{}); }
     }catch(e){
       setPlayIcon(false);
       alert("Não foi possível tocar esta faixa agora.");
@@ -1090,17 +1054,17 @@
     closeMenu();
     switch(act){
       case "home": goHome(); break;
-      case "account":   openInNewTab("/conta.html"); break;           // nova aba
+      case "account":   openPanel("/conta.html", "Conta"); break;
       case "search": el("q").focus(); break;
       case "playlists": openMyPlaylists(); break;
-      case "downloads": openInNewTab("/downloads.html"); break;        // nova aba
+      case "downloads": openPanel("/downloads.html", "Downloads"); break;
       case "favs": 
         renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs"); 
         break;
-      case "billing":   goPremium(); break;                            // nova aba (assinaturas)
-      case "settings":  openInNewTab("/configuracoes.html"); break;    // nova aba
-      case "notify":    openInNewTab("/notificacoes.html"); break;     // nova aba
-      case "help":      openInNewTab("/ajuda.html"); break;            // nova aba
+      case "billing":   goPremium(); break;
+      case "settings":  openPanel("/configuracoes.html", "Configurações"); break;
+      case "notify":    openPanel("/notificacoes.html", "Notificações"); break;
+      case "help":      openPanel("/ajuda.html", "Ajuda"); break;
       case "logout": localStorage.removeItem(TOKEN_KEY); location.reload(); break;
     }
   });
@@ -1219,9 +1183,7 @@
     copy.splice(to,0,it);
     return copy;
   }
-
   let dragFromIndex = null;
-
   function wireDnDItem(el, index, mode){
     el.addEventListener("dragstart", (e)=>{
       dragFromIndex = index;
@@ -1269,6 +1231,7 @@
     isFavoritesContext = false;
     currentPlaylistEditingId = null;
     context = { type:'playlist', id:null, prefix:'' }; // tela de capas
+    closePanel();
     renderMyPlaylists();
   }
 
@@ -1366,6 +1329,7 @@
     isFavoritesContext = false;
     context = { type:'playlist', id: plId, prefix:'' };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
+    closePanel();
     renderList();
     if(!items.length){
       el("list").innerHTML = `<li class="muted" style="list-style:none;padding:8px 2px">Esta playlist está vazia.</li>`;
@@ -1456,8 +1420,7 @@
       }
 
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
-      audio.src = d.url;
-      setAndMaybePlay();
+      audio.src = d.url; setAndMaybePlay();
     }catch(e){ clearPlayback(); }
   }
 
