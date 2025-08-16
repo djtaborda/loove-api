@@ -343,14 +343,43 @@
 
     <!-- ========== NOVAS SEÇÕES INTERNAS (Edição 10) ========== -->
 
-    <!-- CONTA -->
-    <section id="viewAccount" class="card" style="display:none">
-      <h3 style="margin-top:0">Conta</h3>
-      <p class="muted">Gerencie suas informações de acesso.</p>
-      <div style="display:flex; gap:8px; flex-wrap:wrap">
-        <button id="btnLogout2" class="btn">Sair da conta</button>
-      </div>
-    </section>
+   <!-- CONTA -->
+<section id="viewAccount" class="card" style="display:none">
+  <h3 style="margin-top:0">Conta</h3>
+  <p class="muted">Gerencie suas informações de acesso.</p>
+
+  <div style="display:flex; flex-direction:column; gap:12px; max-width:400px">
+
+    <label>
+      <span class="muted">Nome do usuário</span>
+      <input id="accName" type="text" placeholder="Seu nome" 
+             style="width:100%; padding:10px 12px; border-radius:12px; 
+             border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2">
+    </label>
+
+    <label>
+      <span class="muted">E-mail</span>
+      <input id="accEmail" type="email" value="usuario@exemplo.com" disabled
+             style="width:100%; padding:10px 12px; border-radius:12px; 
+             border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#9aa4b2">
+    </label>
+
+    <div>
+      <span class="muted">Plano:</span>
+      <strong id="accPlan" style="margin-left:6px">Free</strong>
+    </div>
+
+    <button id="btnUpgrade" class="btn btn-primary" 
+            style="background:linear-gradient(180deg,#ff9f1a,#ff6a00); 
+                   color:#0b0f14; font-weight:900;">
+      Quero ser Premium
+    </button>
+
+    <div style="margin-top:12px">
+      <button id="btnLogout2" class="btn">Sair da conta</button>
+    </div>
+  </div>
+</section>
 
     <!-- DOWNLOADS (lista offline) -->
     <section id="viewDownloads" class="card" style="display:none">
