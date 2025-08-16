@@ -92,6 +92,24 @@
     border-radius:16px; padding:10px 8px 10px 10px; margin:6px 0;
     box-shadow:0 3px 12px rgba(0,0,0,.14)
   }
+
+  /* ▶ Destaque da faixa em reprodução */
+  .track.playing{
+    background:linear-gradient(180deg, var(--amber-2), var(--amber-3));
+    border:2px solid #ffcc6b;
+    color:#0b0f14;
+    box-shadow:0 6px 22px rgba(255,140,0,.35);
+  }
+  .track.playing .t-title{ color:#0b0f14; }
+  .track.playing .t-sub{ color:rgba(11,15,20,.82); }
+  .track.playing .t-like svg,
+  .track.playing .t-kebab svg{ stroke:#0b0f14; opacity:.95 }
+  .track.playing .t-like.active svg{ stroke:var(--accent); }
+  .track.playing .t-play{
+    background:#0b0f14; color:var(--amber);
+    box-shadow:0 6px 18px rgba(0,0,0,.35)
+  }
+
   .t-left{display:grid; place-items:center}
   .t-play{
     width:40px; height:40px; border-radius:999px;
@@ -584,6 +602,20 @@
     return sum;
   }
 
+  /* ========= Destaque da faixa atual (variáveis + helper) ========= */
+  let currentKey = null, currentName = null; // <— declarado aqui para ser visível em toda a página
+  function updatePlayingHighlight(){
+    // remove destaque anterior
+    document.querySelectorAll('.track.playing').forEach(n=> n.classList.remove('playing'));
+    // aplica no item com data-key = currentKey
+    if(!currentKey) return;
+    document.querySelectorAll('.track').forEach(n=>{
+      if(n.getAttribute('data-key') === currentKey){
+        n.classList.add('playing');
+      }
+    });
+  }
+
   async function startDownload(key, name){
     try{
       const idx = loadDownloadIndex();
@@ -606,11 +638,11 @@
 
       await idbPut(key, blob);
       const meta = { name: name || key.split("/").pop(), folder: key.split("/").slice(0,-1).join("/"), size: blob.size||0, ts: Date.now() };
-      idx[key] = meta; saveDownloadIndex(idx);
+      const newIdx = loadDownloadIndex();
+      newIdx[key] = meta; saveDownloadIndex(newIdx);
 
       alert("Download concluído para uso off-line dentro do app.");
     }catch(e){
-      // se o backend exigir premium, mantém a experiência:
       goPremium();
     }
   }
@@ -762,6 +794,9 @@
       LI.appendChild(menu);
       UL.appendChild(LI);
     });
+
+    // aplica destaque se já houver faixa atual
+    updatePlayingHighlight();
   }
 
   function closeAllItemMenus(){ document.querySelectorAll(".t-menu.open").forEach(m=>m.classList.remove("open")); }
@@ -793,7 +828,7 @@
   const volPop = el("volPop"); const volRange = el("volRange"); const pVolume = el("pVolume"); const pShuffle = el("pShuffle"); const pRepeat = el("pRepeat");
   const btnKebab = el("btnKebab"); const menuPop = el("menuPop");
 
-  let currentKey = null, currentName = null, shuffleOn=false, repeatOn=false;
+  let shuffleOn=false, repeatOn=false; // (currentKey/currentName já foram declarados acima)
   let currentObjectURL = null; // para revogar quando trocar a faixa
 
   function setNow(name,key){ nowTitle.textContent = formatTitle(name||""); nowFolder.textContent = (key? parentFolderFromKey(key):"") || "—"; }
@@ -837,6 +872,7 @@
 
   async function playKey(key,name){
     try{
+      // limpa URL anterior, se houver
       if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
 
       // se baixado, toca do IndexedDB
@@ -847,6 +883,7 @@
         currentObjectURL = audio.src;
         setNow(name,key);
         await audio.play(); setPlayIcon(true);
+        updatePlayingHighlight(); // <— aplica destaque na lista
         savePlayback({ key, name, pos: 0, playing: true });
         return;
       }
@@ -856,6 +893,7 @@
       if(!d?.url){ goPremium(); return; }
       audio.src = d.url; currentKey = key; currentName = name; setNow(name,key);
       await audio.play(); setPlayIcon(true);
+      updatePlayingHighlight(); // <— aplica destaque na lista
       savePlayback({ key, name, pos: 0, playing: true });
     }catch(e){
       setPlayIcon(false);
@@ -982,6 +1020,9 @@
 
       cont.appendChild(row);
     });
+
+    // aplica destaque quando estiver nos favoritos
+    updatePlayingHighlight();
   }
   el("btnFavPlayAll").onclick = ()=>{
     const f = favs(); if(!f.length) return;
@@ -1146,6 +1187,7 @@
     const shouldPlay = !!st?.playing;
     if(!savedKey) return;
     try{
+      // tenta preferir off-line primeiro
       const blob = await idbGet(savedKey);
       if(blob){
         if(currentObjectURL){ URL.revokeObjectURL(currentObjectURL); currentObjectURL=null; }
@@ -1158,12 +1200,14 @@
           const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
           if(target > 0) audio.currentTime = target;
           updateTimeUI();
+          updatePlayingHighlight(); // <— aplica destaque após retomar
           if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); }
           else{ setPlayIcon(false); }
         });
         return;
       }
 
+      // fallback: streaming
       const d = await api("/api/stream?key="+encodeURIComponent(savedKey));
       audio.src = d.url;
       currentKey = savedKey;
@@ -1175,6 +1219,7 @@
         const target = dur > 0 ? Math.min(savedPos, Math.floor(dur - 1)) : savedPos;
         if(target > 0) audio.currentTime = target;
         updateTimeUI();
+        updatePlayingHighlight(); // <— aplica destaque após retomar
         if(shouldPlay){ audio.play().then(()=> setPlayIcon(true)).catch(()=> setPlayIcon(false)); }
         else{ setPlayIcon(false); }
       });
