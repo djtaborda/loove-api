@@ -17,12 +17,13 @@
   }
 
   /* ================== CHANGELOG ==================
-     Edição 07 (16/08/2025, 12:31) = Shuffle por pasta + Destaque tocando + Drag&Drop em Favoritos/Playlists
-     - Shuffle limitado à pasta da faixa atual (carrega a pasta inteira quando preciso).
-     - Destaque da faixa tocando na lista (.track.playing).
-     - Reordenação por arrastar/soltar em Favoritos e Minhas playlists.
-     - Mantém correções anteriores (modal de playlist sob demanda, downloads IndexedDB 500MB, etc.).
-     - Contagem de uso REMOVIDA.
+     Edição 08 — Shuffle por contexto (Favoritos/Minhas playlists)
+     - Shuffle passa a considerar o "contexto" atual:
+       * Favoritos: sorteia só entre os favoritos do usuário
+       * Minhas playlists: sorteia só dentro da playlist aberta
+       * Outras telas (pastas/busca): mantém a lógica anterior
+     - Mantém: destaque da faixa tocando, DnD em Favoritos/Playlists,
+       downloads offline (500MB), modal de playlist sob demanda.
   ================================================= */
 
   *{box-sizing:border-box}
@@ -459,6 +460,10 @@
   let isFavoritesContext = false;
   let currentPlaylistEditingId = null; // habilita drag&drop no #list quando abrimos uma playlist
 
+  // NOVO: contexto para o Shuffle entender de onde sortear
+  // type: 'home' | 'folder' | 'search' | 'favorites' | 'playlist'
+  let context = { type: 'home', id: null, prefix: '' };
+
   async function ensureAuth(){
     try { await api("/api/me"); show("app"); hide("viewLogin"); }
     catch { hide("app"); show("viewLogin"); }
@@ -480,6 +485,7 @@
     currentPrefix = "";
     currentPlaylistEditingId = null;
     isFavoritesContext = false;
+    context = { type:'home', id:null, prefix:'' };
     hide("viewList"); hide("viewFavs"); hide("viewPlaylists"); show("viewHome");
     await loadRootFolders();
   }
@@ -636,6 +642,7 @@
     currentPrefix = prefix || ""; nextToken = null; items = [];
     currentPlaylistEditingId = null; // desliga drag de playlist
     isFavoritesContext = false;
+    context = { type:'folder', id:null, prefix: currentPrefix };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
     el("list").innerHTML = "";
     if(currentPrefix && currentPrefix.startsWith(PREMIUM_PREFIX)){ goPremium(); return; }
@@ -674,7 +681,7 @@
   function formatTitle(filename=""){ let name = filename.replace(/\.[a-z0-9]{1,5}$/i,""); name = name.replace(/\s*[-–—]\s*/," – "); return name; }
   function parentFolderFromKey(key=""){ const path = key.split("/"); path.pop(); return path.join("/") || "/"; }
 
-  /* ===== Shuffle limitado à pasta ===== */
+  /* ===== Shuffle limitado ao CONTEXTO ===== */
   function folderPrefixOf(key=""){
     const p = parentFolderFromKey(key) || "";
     return p ? (p.endsWith("/") ? p : p + "/") : "";
@@ -694,10 +701,31 @@
 
   async function rebuildShufflePoolForCurrentTrack(){
     if(!currentKey) { shufflePool=[]; shufflePrefix=null; return []; }
+
+    // 1) Favoritos: sorteia apenas entre favoritos
+    if(context.type === 'favorites'){
+      const pool = favs().map(k=>({ key:k, name:k.split("/").pop() }))
+                         .filter(it => it.key !== currentKey);
+      shufflePool = pool;
+      shufflePrefix = null;
+      return shufflePool;
+    }
+
+    // 2) Playlist do usuário: sorteia apenas dentro da playlist aberta
+    if(context.type === 'playlist' && currentPlaylistEditingId){
+      const pls = loadUserPlaylists();
+      const pl = pls.find(p=>p.id===currentPlaylistEditingId);
+      const pool = (pl?.tracks||[]).map(k=>({ key:k, name:k.split("/").pop() }))
+                                   .filter(it => it.key !== currentKey);
+      shufflePool = pool;
+      shufflePrefix = null;
+      return shufflePool;
+    }
+
+    // 3) Padrão (pasta/busca): mesma lógica anterior por pasta
     const prefix = folderPrefixOf(currentKey);
     shufflePrefix = prefix;
 
-    // Se a lista exibida é da mesma pasta, usa 'items'; senão, carrega toda a pasta.
     let pool = (currentPrefix === prefix && Array.isArray(items) && items.length)
       ? items.slice()
       : await loadEntireFolder(prefix);
@@ -705,6 +733,7 @@
     shufflePool = pool.filter(it => it.key !== currentKey);
     return shufflePool;
   }
+
   function playRandomFromShufflePool(){
     if(!shufflePool || !shufflePool.length) return;
     const r = Math.floor(Math.random() * shufflePool.length);
@@ -843,6 +872,7 @@
     if(q.length<3){ alert("Digite pelo menos 3 letras."); return; }
     currentPlaylistEditingId = null; // desliga drag de playlist
     isFavoritesContext = false;
+    context = { type:'search', id:null, prefix:'' };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
     const d = await api("/api/search?q="+encodeURIComponent(q)+"&prefix="+encodeURIComponent(currentPrefix||""));
     items = d.items || []; nextToken = null; renderList();
@@ -872,12 +902,18 @@
       return;
     }
     if(shuffleOn){
-      const curFolder = folderPrefixOf(currentKey);
-      if(!shufflePool.length || shufflePrefix !== curFolder){
-        await rebuildShufflePoolForCurrentTrack();
+      if(context.type === 'favorites' || context.type === 'playlist'){
+        if(!shufflePool.length) await rebuildShufflePoolForCurrentTrack();
+        playRandomFromShufflePool();
+        return;
+      }else{
+        const curFolder = folderPrefixOf(currentKey);
+        if(!shufflePool.length || shufflePrefix !== curFolder){
+          await rebuildShufflePoolForCurrentTrack();
+        }
+        playRandomFromShufflePool();
+        return;
       }
-      playRandomFromShufflePool();
-      return;
     }
     if(items.length){
       let idx = items.findIndex(it => it.key===currentKey); if(idx<0) idx=0;
@@ -891,12 +927,18 @@
   pPrev.onclick = ()=>{ if(items.length){ let idx=items.findIndex(it=>it.key===currentKey); if(idx>0) playKey(items[idx-1].key, items[idx-1].name); } };
   pNext.onclick = async ()=>{
     if(shuffleOn){
-      const curFolder = folderPrefixOf(currentKey);
-      if(!shufflePool.length || shufflePrefix !== curFolder){
-        await rebuildShufflePoolForCurrentTrack();
+      if(context.type === 'favorites' || context.type === 'playlist'){
+        if(!shufflePool.length) await rebuildShufflePoolForCurrentTrack();
+        playRandomFromShufflePool();
+        return;
+      }else{
+        const curFolder = folderPrefixOf(currentKey);
+        if(!shufflePool.length || shufflePrefix !== curFolder){
+          await rebuildShufflePoolForCurrentTrack();
+        }
+        playRandomFromShufflePool();
+        return;
       }
-      playRandomFromShufflePool();
-      return;
     }
     if(items.length){
       let idx=items.findIndex(it=>it.key===currentKey);
@@ -910,15 +952,25 @@
     pShuffle.classList.toggle("active", shuffleOn);
 
     if(shuffleOn){
+      if(!currentKey && (context.type==='favorites' || context.type==='playlist')){
+        // se não há música tocando, apenas prepara o pool; o usuário pode dar "Próxima"
+        await rebuildShufflePoolForCurrentTrack();
+        if(!shufflePool.length){
+          alert("Não há músicas suficientes para sortear neste contexto.");
+          shuffleOn = false; pShuffle.classList.remove("active");
+        }
+        return;
+      }
       if(!currentKey){
-        alert("Toque uma música de uma pasta para usar Ordem Aleatória.");
+        alert("Toque uma música para usar Ordem Aleatória.");
         shuffleOn = false;
         pShuffle.classList.remove("active");
         return;
       }
+      // Sempre reconstrói no contexto atual
       await rebuildShufflePoolForCurrentTrack();
       if(!shufflePool.length){
-        alert("Não há outras músicas nesta pasta para sortear.");
+        alert("Não há outras músicas neste contexto para sortear.");
         shuffleOn = false;
         pShuffle.classList.remove("active");
       }
@@ -954,11 +1006,15 @@
         await audio.play(); setPlayIcon(true);
         savePlayback({ key, name, pos: 0, playing: true });
         updatePlayingHighlight();
-        // se o usuário mudou de pasta com shuffle ligado, atualiza o pool
+
         if(shuffleOn){
-          const curFolder = folderPrefixOf(currentKey);
-          if(shufflePrefix !== curFolder){
+          if(context.type === 'favorites' || context.type === 'playlist'){
             rebuildShufflePoolForCurrentTrack().catch(()=>{});
+          }else{
+            const curFolder = folderPrefixOf(currentKey);
+            if(shufflePrefix !== curFolder){
+              rebuildShufflePoolForCurrentTrack().catch(()=>{});
+            }
           }
         }
         return;
@@ -971,10 +1027,15 @@
       await audio.play(); setPlayIcon(true);
       savePlayback({ key, name, pos: 0, playing: true });
       updatePlayingHighlight();
+
       if(shuffleOn){
-        const curFolder = folderPrefixOf(currentKey);
-        if(shufflePrefix !== curFolder){
+        if(context.type === 'favorites' || context.type === 'playlist'){
           rebuildShufflePoolForCurrentTrack().catch(()=>{});
+        }else{
+          const curFolder = folderPrefixOf(currentKey);
+          if(shufflePrefix !== curFolder){
+            rebuildShufflePoolForCurrentTrack().catch(()=>{});
+          }
         }
       }
     }catch(e){
@@ -1010,8 +1071,11 @@
       case "account": location.href = "/conta.html"; break;
       case "search": el("q").focus(); break;
       case "playlists": openMyPlaylists(); break;
-      case "downloads": location.href = "/downloads.html"; break; /* mantém navegação original (Regra 05) */
-      case "favs": renderFavs(); hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs"); break;
+      case "downloads": location.href = "/downloads.html"; break; /* mantém navegação original */
+      case "favs":
+        renderFavs();
+        hide("viewHome"); hide("viewList"); hide("viewPlaylists"); show("viewFavs");
+        break;
       case "billing": goPremium(); break;
       case "settings": location.href = "/configuracoes.html"; break;
       case "notify":   location.href = "/notificacoes.html"; break;
@@ -1026,11 +1090,14 @@
   function renderFavs(){
     const cont = el("favList"); cont.innerHTML = "";
     const f = favs(); el("btnFavPlayAll").style.display = f.length? "" : "none";
-    if(!f.length){ cont.innerHTML = `<div class="muted">Você ainda não marcou favoritos.</div>`; return; }
+    if(!f.length){ cont.innerHTML = `<div class="muted">Você ainda não marcou favoritos.</div>`; }
 
-    // Habilita contexto de favoritos (para drag&drop)
+    // Contexto de favoritos
     isFavoritesContext = true;
     currentPlaylistEditingId = null;
+    context = { type:'favorites', id:null, prefix:'' };
+
+    cont.innerHTML = "";
 
     f.forEach((k, index)=>{
       const row = document.createElement("div");
@@ -1045,7 +1112,10 @@
       const play = document.createElement("button");
       play.className="t-play";
       play.innerHTML="▶";
-      play.onclick=async()=>{ const nm=k.split("/").pop(); playKey(k,nm); };
+      play.onclick=async()=>{
+        context = { type:'favorites', id:null, prefix:'' };
+        const nm=k.split("/").pop(); playKey(k,nm);
+      };
       left.appendChild(play);
 
       const info = document.createElement("div");
@@ -1118,6 +1188,7 @@
     items = f.map(k=>({ key:k, name:k.split("/").pop() }));
     isFavoritesContext = true;
     currentPlaylistEditingId = null;
+    context = { type:'favorites', id:null, prefix:'' };
     show("viewList"); hide("viewHome"); hide("viewFavs"); hide("viewPlaylists");
     renderList();
     playKey(items[0].key, items[0].name);
@@ -1179,6 +1250,7 @@
     hide("viewHome"); hide("viewList"); hide("viewFavs"); show("viewPlaylists");
     isFavoritesContext = false;
     currentPlaylistEditingId = null;
+    context = { type:'playlist', id:null, prefix:'' }; // lista de capas
     renderMyPlaylists();
   }
 
@@ -1274,6 +1346,7 @@
     items = tr.map(k=>({ key:k, name:k.split("/").pop() }));
     currentPlaylistEditingId = plId;  // ativa drag&drop no #list
     isFavoritesContext = false;
+    context = { type:'playlist', id: plId, prefix:'' };
     hide("viewHome"); hide("viewFavs"); hide("viewPlaylists"); show("viewList");
     renderList();
     if(!items.length){
