@@ -65,11 +65,37 @@
   .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
   .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
 
-  /* logo */
-  .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px}
-  .logo{width:min(680px, 88%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))}
-  @media(max-width:600px){ .logo{ width:min(420px, 68vw); } }
-  .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
+ /* logo */
+.logo-wrap{
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  margin-top:20px;
+  text-align:center; /* garante alinhamento em qualquer tela */
+}
+
+.logo{
+  width:min(300px, 40%); /* reduzi mais ~10% em relação ao ajuste anterior */
+  filter:drop-shadow(0 6px 24px rgba(0,0,0,.45));
+  margin: 0 auto; /* força centralização */
+}
+
+/* no celular */
+@media(max-width:600px){ 
+  .logo{ 
+    width:min(190px, 32vw); /* também reduzi 10% para manter proporcional */
+    margin: 0 auto;
+  }
+}
+
+.tagline{
+  margin-top:8px; 
+  text-align:center; 
+  font-weight:900; 
+  letter-spacing:.4px; 
+  color:#fff; 
+  font-size:clamp(18px, 4.5vw, 28px);
+}
 
   /* busca */
   .search{display:flex; align-items:center; gap:10px; margin:16px auto 8px; max-width:820px}
