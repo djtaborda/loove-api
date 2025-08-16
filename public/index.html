@@ -410,35 +410,46 @@
         <button id="btnClearPlayback" class="btn">Limpar memória de reprodução</button>
       </div>
     </section>
-
-   <!-- NOTIFICAÇÕES -->
+<!-- NOTIFICAÇÕES -->
 <section id="viewNotify" class="card" style="display:none">
   <h3 style="margin-top:0">Notificações</h3>
   <p class="muted">Escolha quais tipos de aviso deseja receber.</p>
 
   <div style="display:flex; flex-direction:column; gap:10px; max-width:420px">
 
-    <button id="btnNotifMusicas" class="btn">
-      🎵 Quero receber notificação de <strong>MÚSICAS NOVAS</strong>
+    <button class="btn notif-btn" data-key="musicas">
+      🎵 MÚSICAS NOVAS
     </button>
 
-    <button id="btnNotifNovidades" class="btn">
-      🌟 Quero receber notificação de <strong>NOVIDADES E SUCESSOS</strong>
+    <button class="btn notif-btn" data-key="novidades">
+      🌟 NOVIDADES E SUCESSOS
     </button>
 
-    <button id="btnNotifPlaylists" class="btn">
-      🎧 Quero receber notificação de <strong>PLAYLISTS ESPECIAIS</strong>
+    <button class="btn notif-btn" data-key="playlists">
+      🎧 PLAYLISTS ESPECIAIS
+    </button>
+
+    <button class="btn notif-btn" data-key="shows">
+      🎤 SHOWS E EVENTOS
+    </button>
+
+    <button class="btn notif-btn" data-key="ofertas">
+      💰 OFERTAS E PROMOÇÕES
+    </button>
+
+    <button class="btn notif-btn" data-key="recomendacoes">
+      🤖 RECOMENDAÇÕES PERSONALIZADAS
     </button>
 
     <div style="margin-top:8px">
       <button id="btnNotifAll" class="btn btn-primary" 
               style="background:linear-gradient(180deg,#ff9f1a,#ff6a00); color:#0b0f14; font-weight:900;">
-        🔔 Ativar ou desativar todas as notificações
+        🔔 Ativar/Desativar todas as notificações
       </button>
     </div>
   </div>
 </section>
-
+  
     <!-- AJUDA -->
     <section id="viewHelp" class="card" style="display:none">
       <h3 style="margin-top:0">Ajuda</h3>
