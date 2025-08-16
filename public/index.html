@@ -101,61 +101,6 @@
   filter:drop-shadow(0 6px 24px rgba(0,0,0,.45));
   margin: 0 auto; /* força centralização */
 }
-/* ========== Notificações com persistência ========== */
-const NOTIF_KEY = "loove_notif_prefs_v1";
-const NOTIF_DEFAULTS = { musicas:false, novidades:false, playlists:false };
-
-function readNotif(){
-  try{ return { ...NOTIF_DEFAULTS, ...(JSON.parse(localStorage.getItem(NOTIF_KEY)||"{}")||{}) }; }
-  catch{ return { ...NOTIF_DEFAULTS }; }
-}
-function writeNotif(prefs){
-  try{ localStorage.setItem(NOTIF_KEY, JSON.stringify(prefs||NOTIF_DEFAULTS)); }catch{}
-}
-
-function applyNotificationPrefs(p){
-  // GANCHO para push real (Firebase/OneSignal) se desejar depois.
-  // Ex.: inscrever/desinscrever em tópicos "musicas", "novidades", "playlists".
-}
-
-function reflectNotifUI(){
-  const p = readNotif();
-  const $ = (sel)=> document.querySelector(sel);
-  const cMus = $('#viewNotify .notif-switch[data-key="musicas"]');
-  const cNov = $('#viewNotify .notif-switch[data-key="novidades"]');
-  const cPls = $('#viewNotify .notif-switch[data-key="playlists"]');
-  if(cMus) cMus.checked = !!p.musicas;
-  if(cNov) cNov.checked = !!p.novidades;
-  if(cPls) cPls.checked = !!p.playlists;
-  applyNotificationPrefs(p);
-}
-
-function initNotifications(){
-  const box = document.getElementById("viewNotify");
-  if(!box) return; // segurança caso a seção não exista
-
-  const switches = box.querySelectorAll(".notif-switch");
-  switches.forEach(inp=>{
-    inp.addEventListener("change", ()=>{
-      const k = inp.getAttribute("data-key");
-      const prefs = readNotif();
-      prefs[k] = !!inp.checked;
-      writeNotif(prefs);
-      applyNotificationPrefs(prefs);
-    });
-  });
-
-  // Master: liga/desliga todas
-  const btnAll = document.getElementById("btnNotifAll");
-  if(btnAll){
-    btnAll.addEventListener("click", ()=>{
-      const p = readNotif();
-      const anyOff = !p.musicas || !p.novidades || !p.playlists;
-      const next = { musicas:anyOff, novidades:anyOff, playlists:anyOff };
-      writeNotif(next);
-      reflectNotifUI();
-    });
-  }
 
   // Primeira pintura conforme o salvo
   reflectNotifUI();
