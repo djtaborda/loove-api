@@ -1719,18 +1719,16 @@
   el("btnGoPremium")?.addEventListener("click", ()=> goPremium());
   el("btnLogout2")?.addEventListener("click", ()=> { localStorage.removeItem(TOKEN_KEY); location.reload(); });
 
-  async function ensureAuthAndLoad(){
-    await ensureAuth();
-    if(el("app").style.display!=="none"){
-      setFlatIcons();
-      initNotifications();
-      await loadPremiumFolders(); 
-      await goHome();
-      await tryResumePlayback();
-    }
+async function ensureAuthAndLoad(){
+  await ensureAuth();
+  // protege a chamada de initNotifications
+  if (typeof initNotifications === 'function') {
+    initNotifications();
   }
-  ensureAuthAndLoad();
-  async function boot(){ await ensureAuthAndLoad(); }
+  await loadPremiumFolders();
+  await goHome();
+}
+
 </script>
 </body>
 </html>
