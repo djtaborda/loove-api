@@ -5,26 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Loove • Music App</title>
 <style>
-/* ... seu CSS que já existe ... */
-
-/* === SWITCH DE NOTIFICAÇÕES === */
-.switch-row {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding:10px 12px;
-  border-radius:12px;
-  background:#0f1726;
-  border:1px solid rgba(255,255,255,.08);
-  font-weight:600;
-  cursor:pointer;
-  position:relative;
-}
-
-.switch-row input { ... }
-.slider { ... }
-...
   :root{
     --bg:#0b0f14;
     --card:#121826;
@@ -1724,53 +1704,6 @@
   }
   ensureAuthAndLoad();
   async function boot(){ await ensureAuthAndLoad(); }
-
-/* ==== NOTIFICAÇÕES (Switch) ==== */
-const NOTIF_KEY = "loove_notificacoes_v2";
-
-function loadNotifs(){
-  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || "{}"); }
-  catch { return {}; }
-}
-
-function saveNotifs(data){
-  localStorage.setItem(NOTIF_KEY, JSON.stringify(data||{}));
-}
-
-function renderNotifs(){
-  const state = loadNotifs();
-  document.querySelectorAll(".notif-switch").forEach(sw=>{
-    const key = sw.dataset.key;
-    sw.checked = !!state[key];
-  });
-}
-
-function toggleAllNotifs(){
-  const state = loadNotifs();
-  const allOn = Object.values(state).every(v=>v===true);
-  const newState = {};
-  document.querySelectorAll(".notif-switch").forEach(sw=>{
-    newState[sw.dataset.key] = !allOn;
-  });
-  saveNotifs(newState);
-  renderNotifs();
-}
-
-// Eventos
-document.addEventListener("DOMContentLoaded", ()=>{
-  document.querySelectorAll(".notif-switch").forEach(sw=>{
-    sw.addEventListener("change", ()=>{
-      const state = loadNotifs();
-      state[sw.dataset.key] = sw.checked;
-      saveNotifs(state);
-    });
-  });
-  const allBtn = document.getElementById("btnNotifAll");
-  if(allBtn) allBtn.addEventListener("click", toggleAllNotifs);
-
-  renderNotifs(); // restaura estado
-});
-  
 </script>
 </body>
 </html>
