@@ -1682,6 +1682,46 @@
     });
   }
 
+  /* ===== Tema do App (persistência + UI) ===== */
+function getTheme(){
+  return localStorage.getItem(THEME_KEY) || "atual";
+}
+function setTheme(theme){
+  const valid = ["atual","rosa","verde","black"];
+  const t = valid.includes(theme) ? theme : "atual";
+  document.documentElement.setAttribute("data-theme", t);
+  try{ localStorage.setItem(THEME_KEY, t); }catch{}
+  // Atualiza resumo e destaque dos chips (se a tela de Settings estiver montada)
+  const sum = document.getElementById("themeSummary");
+  if(sum){ sum.textContent = "Tema atual: " + 
+    (t === "atual" ? "Atual" : t === "rosa" ? "Rosa Neon" : t === "verde" ? "Verde Neon" : "Black"); }
+  const chips = document.querySelectorAll("#themeRow .chip-premium");
+  chips.forEach(btn => btn.classList.toggle("active", btn.dataset.theme === t));
+}
+
+/* Chamar no boot (logo que o app inicia, antes de renderizar telas) */
+setTheme(getTheme());
+
+/* Liga os chips de tema quando abrir Configurações */
+function wireThemeControls(){
+  const chips = document.querySelectorAll("#themeRow .chip-premium");
+  chips.forEach(btn=>{
+    btn.onclick = ()=>{
+      const t = btn.getAttribute("data-theme");
+      setTheme(t);
+      alert("Tema aplicado: " + btn.textContent.trim());
+    };
+  });
+  // estado inicial dos chips e resumo
+  setTheme(getTheme());
+}
+
+/* Dentro de initSettingsPanel(), ao final, adicione: */
+function initSettingsPanel(){
+  // ... (seu código existente da tela)
+  wireThemeControls();
+}
+
   function initSettingsPanel(){
     // idioma
     const langSel = el("cfgLang");
@@ -1753,6 +1793,3 @@
 </script>
 </body>
 </html>
-
-
-  
