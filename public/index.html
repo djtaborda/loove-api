@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="atual">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loove • Music App</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --card:#121826;
+    --muted:#9aa4b2;
+    --text:#e6ecf2;
+    --accent:#ff2fb3;
+    --amber:#ff9f1a;
+    --amber-2:#ffb02e;
+    --amber-3:#ff7a00;
+  }
+
+  /* ===== Temas (apenas variables) ===== */
+  /* Tema Atual (default) -> já é o :root */
+  [data-theme="atual"]{
+    --bg:#0b0f14;
+    --card:#121826;
+    --muted:#9aa4b2;
+    --text:#e6ecf2;
+    --accent:#ff2fb3;
+    --amber:#ff9f1a; --amber-2:#ffb02e; --amber-3:#ff7a00;
+  }
+  /* Rosa Neon */
+  [data-theme="rosa"]{
+    --bg:#0b0f14;
+    --card:#121826;
+    --muted:#a7b0bd;
+    --text:#e9eef4;
+    --accent:#ff2fb3;
+    --amber:#ff5fb3; --amber-2:#ff39a2; --amber-3:#ff138e;
+  }
+  /* Verde Neon */
+  [data-theme="verde"]{
+    --bg:#0a1113;
+    --card:#101923;
+    --muted:#99b2a6;
+    --text:#e7f6ef;
+    --accent:#00ff9c;
+    --amber:#26f2a3; --amber-2:#18cc8a; --amber-3:#0aa870;
+  }
+  /* Black */
+  [data-theme="black"]{
+    --bg:#000000;
+    --card:#0b0b0b;
+    --muted:#9b9b9b;
+    --text:#f2f2f2;
+    --accent:#d0d0d0;
+    --amber:#6d6d6d; --amber-2:#505050; --amber-3:#2f2f2f;
+  }
+
+  /* ================== CHANGELOG ==================
+     Edição 13 (2025-08-17, 18:22) — Temas e Cores: conserto definitivo da troca de cores na aba Configurações com persistência em localStorage e aplicação global em botões/grades/menus. (Sem alterar layout)
+  ================================================= */
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:
+      radial-gradient(1000px 600px at 10% -10%, rgba(49,225,255,.08), transparent 60%),
+      radial-gradient(800px 500px at 110% 10%, rgba(255,47,179,.07), transparent 60%),
+      var(--bg); color:var(--text);
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    min-height:100dvh; padding-bottom:170px;
+  }
+  .wrap{width:100%; max-width:1060px; margin:0 auto; padding:16px}
+  header{position:relative; padding-top:12px; margin-bottom:12px}
+  .userbox{position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
+  .avatar{width:44px; height:44px; display:grid; place-items:center; border-radius:50%}
+  .avatar svg{width:30px; height:30px; stroke:#ffffff; opacity:.95}
+
+  .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:60}
+  .backdrop.open{display:block}
+  .menu{position:fixed; top:0; right:0; height:100%; width:320px; background:linear-gradient(180deg,#0f1624,#0b101a);
+        border-left:1px solid rgba(255,255,255,.1); box-shadow:0 20px 60px rgba(0,0,0,.6);
+        padding:14px; transform:translateX(110%); transition:.25s ease; z-index:70}
+  .menu.open{transform:translateX(0)}
+  .menu h4{margin:4px 6px 10px; font-size:13px; color:#9aa4b2; font-weight:700}
+  .menu .mi{width:100%; text-align:left; padding:12px 12px; border-radius:14px; background:#0c1117; border:1px solid rgba(255,255,255,.08);
+            color:#e6ecf2; font-weight:800; display:flex; align-items:center; gap:10px; cursor:pointer}
+  .menu .mi:hover{filter:brightness(1.1); box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .menu .mi svg{width:22px; height:22px; stroke:#ffffff; opacity:.95}
+  .menu .sep{height:1px; background:rgba(255,255,255,.08); margin:10px 6px}
+
+  .logo-wrap{display:flex; align-items:center; justify-content:center; margin-top:20px; text-align:center}
+  .logo{width:min(300px, 40%); filter:drop-shadow(0 6px 24px rgba(0,0,0,.45)); margin:0 auto}
+  @media(max-width:600px){ .logo{ width:min(190px, 32vw); margin: 0 auto; } }
+  .tagline{margin-top:8px; text-align:center; font-weight:900; letter-spacing:.4px; color:#fff; font-size:clamp(18px, 4.5vw, 28px)}
+
+  .search{display:flex; align-items:center; gap:10px; margin:16px auto 8px; max-width:820px}
+  .s-ico{display:grid; place-items:center; width:24px; height:24px; opacity:.95}
+  .s-ico svg{width:22px; height:22px; stroke:#ffffff}
+  .search input{flex:1; padding:16px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.1); background:#0d1320; color:var(--text); font-size:16px}
+  .search input:focus{outline:none; box-shadow:0 0 0 2px rgba(49,225,255,.35)}
+
+  .chips{display:flex; gap:10px; flex-wrap:wrap; margin:10px auto 14px; justify-content:center}
+  .chip-premium{background:#0d1320; color:var(--text); border:2px solid var(--amber-3); padding:10px 14px; border-radius:999px; font-weight:900; letter-spacing:.2px; box-shadow: 0 4px 16px rgba(0,0,0,.15); cursor:pointer}
+  .chip-premium.active{ outline:2px solid rgba(49,225,255,.35); box-shadow:0 0 0 2px rgba(49,225,255,.25), 0 8px 20px rgba(49,225,255,.18); }
+
+  .muted{color:var(--muted)}
+  .card{background:linear-gradient(180deg,#121826,#0c111b); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px}
+
+  .grid{display:grid; gap:12px; margin-top:10px}
+  @media(min-width:1024px){ .grid{grid-template-columns: repeat(4, 1fr);} }
+  @media(min-width:740px) and (max-width:1023px){ .grid{grid-template-columns: repeat(3, 1fr);} }
+  @media(max-width:739px){ .grid{grid-template-columns: repeat(2, 1fr);} }
+  .folderBtn{display:flex; align-items:center; justify-content:center; text-align:center; min-height:92px; padding:10px; border-radius:18px; cursor:pointer; background:linear-gradient(180deg, var(--amber-2), var(--amber-3)); color:#0b0f14; font-weight:900; font-size:20px; text-transform:uppercase; border:2px solid #ffcc6b; box-shadow: 0 6px 20px rgba(255,140,0,.25); position:relative}
+  .folderBtn::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.9; }
+
+  .list{margin:0; padding:0}
+  .track{list-style:none; position:relative; display:flex; align-items:center; gap:10px; background:#0f1726; border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:10px 8px 10px 10px; margin:6px 0; box-shadow:0 3px 12px rgba(0,0,0,.14)}
+  .track.playing{ background:linear-gradient(180deg, var(--amber-2), var(--amber-3)); color:#0b0f14; border-color:#ffcc6b; box-shadow:0 6px 22px rgba(255,140,0,.35) }
+  .t-left{display:grid; place-items:center}
+  .t-play{width:40px; height:40px; border-radius:999px; background:linear-gradient(180deg,var(--amber-2),var(--amber-3)); border:none; color:#fff; display:grid; place-items:center; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.26); font-weight:900}
+  .t-titleBox{min-width:0; display:flex; flex-direction:column; gap:2px}
+  .t-title{font-weight:900; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .t-sub{font-size:11px; color:var(--muted); margin-top:0}
+  .t-right{margin-left:auto; display:flex; align-items:center; gap:6px}
+  .t-like{width:36px; height:36px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer; margin-right:2px}
+  .t-like svg{width:22px; height:22px; stroke:#ffffff; fill:none; opacity:.95}
+  .t-kebab{width:36px; height:36px; background:transparent; border:none; display:grid; place-items:center; cursor:pointer}
+  .t-menu{position:absolute; right:6px; top:52px; background:#0f1720; border:1px solid rgba(255,255,255,.12); padding:10px; border-radius:12px; display:none; min-width:240px; z-index:5; text-align:right}
+  .t-menu.open{display:block}
+  .t-menu .menu-item{width:100%; text-align:right; padding:10px 12px; border-radius:10px; color:#e6ecf2; background:transparent; border:1px solid transparent; cursor:pointer; font-weight:700; display:block}
+  .t-menu .menu-item:hover{background:#141e2e; border-color:rgba(255,255,255,.06)}
+
+  .loadmore-wrap{display:flex; justify-content:center; margin:12px 0 4px}
+  .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#121b2b; color:#e6ecf2; padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:700}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{border:none; background:linear-gradient(180deg,var(--amber-2),var(--amber-3)); color:#0b0f14}
+
+  footer.player{position:fixed; left:0; right:0; bottom:0; z-index:20; background:transparent}
+  .player-shell{max-width:980px; margin:0 auto 16px; padding:14px 16px; background:#0c1117; border:1px solid rgba(255,255,255,.08); border-radius:24px; box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .p-top{display:flex; align-items:center; gap:10px; margin-bottom:8px}
+  .track-title{font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .track-right{margin-left:auto; display:flex; align-items:center; gap:8px}
+  .kebab{width:34px; height:34px; border-radius:10px; background:transparent; border:none; color:#e6ecf2; display:grid;place-items:center; cursor:pointer}
+  .track-sub{font-size:12px; color:var(--muted); margin-top:-2px}
+  .progress{width:100%; margin-bottom:10px}
+  .seek{appearance:none; width:100%; height:6px; border-radius:999px; background:#2a3342; outline:none}
+  .seek::-webkit-slider-thumb{appearance:none; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid #bbb}
+  .seek::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid #bbb}
+
+  .p-controls{display:flex; align-items:center; justify-content:space-between}
+  .p-btn{width:44px; height:44px; border:none; background:transparent; color:#fff; display:grid; place-items:center; cursor:pointer; padding:0}
+  .p-btn svg{width:28px; height:28px; stroke:#ffffff; opacity:.9}
+  .p-btn.active svg{stroke:#31e1ff}
+  .p-play{width:62px; height:62px; border-radius:999px; background:linear-gradient(180deg,var(--amber-2),var(--amber-3)); color:#0b0f14; border:none; display:grid; place-items:center; box-shadow:0 8px 30px rgba(0,0,0,.35)}
+
+  .pl-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0 8px}
+  .pl-grid{display:grid; gap:12px; margin-top:8px}
+  @media(min-width:1024px){ .pl-grid{grid-template-columns: repeat(4, 1fr);} }
+  @media(min-width:740px) and (max-width:1023px){ .pl-grid{grid-template-columns: repeat(3, 1fr);} }
+  @media(max-width:739px){ .pl-grid{grid-template-columns: repeat(2, 1fr);} }
+  .pl-item{min-height:92px; padding:10px; border-radius:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; background:#1a1f27; color:var(--amber); font-weight:900; font-size:18px; text-transform:uppercase; border:2px solid var(--amber); box-shadow: 0 0 10px rgba(255,159,26,.25), 0 4px 18px rgba(0,0,0,.25); text-shadow:0 0 8px rgba(0,0,0,.35); position:relative}
+  .pl-item::after{ content:"›"; position:absolute; right:10px; top:8px; font-size:22px; font-weight:900; opacity:.95; color:var(--amber-2) }
+
+  /* NOTIFICAÇÕES simples */
+  .switch-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-radius:14px; background:#0f1726; border:1px solid rgba(255,255,255,.08)}
+  .switch-row .slider{position:relative; width:48px; height:24px; background:#2a3342; border-radius:999px; display:inline-block}
+  .switch-row .slider::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .2s, left .2s}
+  .switch-row input[type="checkbox"]{display:none}
+  .switch-row input[type="checkbox"]:checked + .slider{background:linear-gradient(180deg,var(--amber-2),var(--amber-3))}
+  .switch-row input[type="checkbox"]:checked + .slider::after{left:26px}
+</style>
+</head>
+<body>
+  <div class="wrap" id="app" style="display:block">
+    <header>
+      <div class="userbox" id="userBtn" title="Abrir menu">
+        <div class="avatar" id="avatarIcon"></div>
+      </div>
+
+      <div id="menuBackdrop" class="backdrop"></div>
+      <div class="menu" id="userMenu" aria-hidden="true">
+        <h4>MENU</h4>
+        <button class="mi" data-act="home"      id="miHome">🏠 Início</button>
+        <button class="mi" data-act="account"   id="miAccount">👤 Conta</button>
+        <button class="mi" data-act="search"    id="miSearch">🔎 Buscar</button>
+        <button class="mi" data-act="playlists" id="miPlaylists">🎛️ Minhas playlists</button>
+        <button class="mi" data-act="downloads" id="miDowns">⬇️ Downloads</button>
+        <button class="mi" data-act="favs"      id="miFavs">⭐ Favoritos</button>
+        <button class="mi" data-act="billing"   id="miBilling">💳 Assinatura</button>
+        <button class="mi" data-act="settings"  id="miSettings">⚙️ Configurações</button>
+        <button class="mi" data-act="notify"    id="miNotify">🔔 Notificações</button>
+        <div class="sep"></div>
+        <button class="mi" data-act="help"      id="miHelp">❓ Ajuda</button>
+        <div class="sep"></div>
+        <button class="mi" data-act="logout"    id="miLogout">↪️ Sair</button>
+      </div>
+
+      <div class="logo-wrap">
+        <picture>
+          <source srcset="/logolove.webp" type="image/webp">
+          <img class="logo" src="/loove-logo.png" alt="Loove music">
+        </picture>
+      </div>
+      <div class="tagline">TODO MUNDO AMA MÚSICA</div>
+
+      <div class="search">
+        <span id="searchIco" class="s-ico">🔎</span>
+        <input id="q" type="search" placeholder="Qual música você quer ouvir?" />
+      </div>
+
+      <div class="chips" id="chipsPremium">
+        <button class="chip-premium" data-p="top1000">TOP-1.000</button>
+        <button class="chip-premium" data-p="summer">SUMMER ELETRO HITS</button>
+        <button class="chip-premium" data-p="jovempan">JOVEM PAN</button>
+        <button class="chip-premium" data-p="setsremix">SETS REMIX</button>
+        <button class="chip-premium" data-p="secret">PLAYLIST SECRETA</button>
+        <button class="chip-premium" data-p="flashbackgold">FLASHBACK GOLD</button>
+        <button class="chip-premium" data-p="topmundogold">TOP - MUNDO GOLD</button>
+      </div>
+    </header>
+
+    <!-- HOME -->
+    <section id="viewHome">
+      <div class="grid" id="foldersGrid">
+        <button class="folderBtn" disabled>Carregue sua API para listar pastas…</button>
+      </div>
+    </section>
+
+    <!-- LISTA -->
+    <section id="viewList" class="card" style="display:none">
+      <div id="subfoldersWrap" style="display:none; margin-bottom:8px">
+        <div class="grid" id="subfoldersGrid"></div>
+      </div>
+      <ul id="list" class="list"></ul>
+      <div class="loadmore-wrap">
+        <button id="btnMore" class="btn">Carregar mais</button>
+      </div>
+    </section>
+
+    <!-- FAVORITOS -->
+    <section id="viewFavs" class="card" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <h3 style="margin:0">Favoritos</h3>
+        <button id="btnFavPlayAll" class="btn btn-primary" title="Escutar todas">▶ Escutar todas</button>
+      </div>
+      <div id="favList"></div>
+    </section>
+
+    <!-- MINHAS PLAYLISTS -->
+    <section id="viewPlaylists" class="card" style="display:none">
+      <div class="pl-head">
+        <h3 style="margin:0">Minhas playlists</h3>
+        <button id="btnCreatePl" class="btn btn-primary">+ Criar playlist</button>
+      </div>
+      <div id="myPlGrid" class="pl-grid"></div>
+    </section>
+
+    <!-- CONTA -->
+    <section id="viewAccount" class="card" style="display:none">
+      <h3 style="margin-top:0">Conta</h3>
+      <p class="muted">Gerencie suas informações de acesso.</p>
+
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:400px">
+        <label>
+          <span class="muted">Nome do usuário</span>
+          <input id="accName" type="text" placeholder="Seu nome" 
+                 style="width:100%; padding:10px 12px; border-radius:12px; 
+                 border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2">
+        </label>
+
+        <label>
+          <span class="muted">E-mail</span>
+          <input id="accEmail" type="email" value="usuario@exemplo.com" disabled
+                 style="width:100%; padding:10px 12px; border-radius:12px; 
+                 border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#9aa4b2">
+        </label>
+
+        <div>
+          <span class="muted">Plano:</span>
+          <strong id="accPlan" style="margin-left:6px">Free</strong>
+        </div>
+
+        <button id="btnUpgrade" class="btn btn-primary" 
+                style="background:linear-gradient(180deg,var(--amber-2),var(--amber-3)); 
+                       color:#0b0f14; font-weight:900;">
+          Quero ser Premium
+        </button>
+
+        <div style="margin-top:12px">
+          <button id="btnLogout2" class="btn">Sair da conta</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOWNLOADS -->
+    <section id="viewDownloads" class="card" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <h3 style="margin:0">Downloads (Off-line)</h3>
+        <div id="dlUsage" class="muted">Uso: 0 MB / 500 MB</div>
+      </div>
+      <div id="dlList" class="muted">Sem itens.</div>
+    </section>
+
+    <!-- ASSINATURAS -->
+    <section id="viewBilling" class="card" style="display:none">
+      <h3 style="margin-top:0">Assinaturas</h3>
+      <p class="muted">Desbloqueie playlists premium e downloads ilimitados (dentro do limite local).</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="btnGoPremium" class="btn btn-primary">Assinar Premium</button>
+      </div>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section id="viewSettings" class="card" style="display:none">
+      <h3 style="margin-top:0">Configurações</h3>
+
+      <div style="display:flex; flex-direction:column; gap:14px; max-width:560px">
+        <!-- Preferência musical -->
+        <div>
+          <label class="muted">Preferência musical</label>
+          <div id="prefChips" class="chips" style="justify-content:flex-start; margin-top:8px">
+            <button class="chip-premium" data-genre="Pop">Pop</button>
+            <button class="chip-premium" data-genre="Eletrônica">Eletrônica</button>
+            <button class="chip-premium" data-genre="Sertanejo">Sertanejo</button>
+            <button class="chip-premium" data-genre="Funk">Funk</button>
+            <button class="chip-premium" data-genre="Rock">Rock</button>
+            <button class="chip-premium" data-genre="Pagode">Pagode</button>
+            <button class="chip-premium" data-genre="Forró">Forró</button>
+            <button class="chip-premium" data-genre="Hip Hop">Hip Hop</button>
+            <button class="chip-premium" data-genre="MPB">MPB</button>
+            <button class="chip-premium" data-genre="Gospel">Gospel</button>
+          </div>
+          <div class="muted" id="prefSummary" style="font-size:12px; margin-top:6px"></div>
+        </div>
+
+        <!-- Idioma do app -->
+        <label class="muted" for="cfgLang">Idioma do App</label>
+        <select id="cfgLang" style="width:260px; padding:10px 12px; border-radius:12px;
+                 border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2">
+          <option value="pt">Português</option>
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+
+        <!-- Mix DJ (Crossfade) -->
+        <div>
+          <label class="muted" for="cfgMix">Mix DJ (crossfade)</label>
+          <div style="display:flex; align-items:center; gap:12px; margin-top:6px">
+            <input id="cfgMix" type="range" min="0" max="12" step="1" style="width:260px">
+            <strong id="cfgMixVal">0s</strong>
+          </div>
+          <p class="muted" style="margin:6px 0 0; font-size:12px">
+            Dica: 6–8s costuma soar natural em músicas pop/eletrônica.
+          </p>
+        </div>
+
+        <!-- Volume geral do app -->
+        <label class="muted">Volume do app
+          <input id="cfgVol" type="range" min="0" max="1" step="0.01" style="width:260px; display:block; margin-top:6px">
+        </label>
+
+        <!-- Tema do App (NOVO) -->
+        <div>
+          <label class="muted" for="themeRow">Tema do App</label>
+          <div id="themeRow" class="chips" style="justify-content:flex-start; margin-top:8px">
+            <button class="chip-premium" data-theme="atual">Atual</button>
+            <button class="chip-premium" data-theme="rosa">Rosa Neon</button>
+            <button class="chip-premium" data-theme="verde">Verde Neon</button>
+            <button class="chip-premium" data-theme="black">Black</button>
+          </div>
+          <div class="muted" id="themeSummary" style="font-size:12px; margin-top:6px"></div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px">
+          <button id="btnClearPlayback" class="btn">Limpar memória de reprodução</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTIFICAÇÕES -->
+    <section id="viewNotify" class="card" style="display:none">
+      <h3 style="margin-top:0">Notificações</h3>
+      <p class="muted">Escolha quais tipos de aviso deseja receber.</p>
+
+      <div style="display:flex; flex-direction:column; gap:16px; max-width:420px">
+        <label class="switch-row">
+          <span>🎵 Músicas novas</span>
+          <input type="checkbox" class="notif-switch" data-key="musicas">
+          <span class="slider"></span>
+        </label>
+
+        <label class="switch-row">
+          <span>🌟 Novidades e sucessos</span>
+          <input type="checkbox" class="notif-switch" data-key="novidades">
+          <span class="slider"></span>
+        </label>
+
+        <label class="switch-row">
+          <span>🎧 Playlists especiais</span>
+          <input type="checkbox" class="notif-switch" data-key="playlists">
+          <span class="slider"></span>
+        </label>
+
+        <div style="margin-top:12px">
+          <button id="btnNotifAll" class="btn btn-primary"
+                  style="background:linear-gradient(180deg,var(--amber-2),var(--amber-3)); color:#0b0f14; font-weight:900;">
+            🔔 Ativar/Desativar todas as notificações
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AJUDA -->
+    <section id="viewHelp" class="card" style="display:none">
+      <h3 style="margin-top:0">Ajuda</h3>
+      <p class="muted">Perguntas frequentes e suporte.</p>
+      <ul>
+        <li>Como baixar para ouvir off-line? Abra o "⋯" da música e toque <strong>Baixar</strong>.</li>
+        <li>Como criar playlist? Use o botão <strong>+ Criar playlist</strong> em "Minhas playlists".</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- LOGIN MÍNIMO (mantido) -->
+  <section id="viewLogin" class="card" style="max-width:420px;margin:60px auto; display:none">
+    <h2>Entrar</h2>
+    <p class="muted">Digite seu PIN para acessar o app.</p>
+    <form id="formLogin" class="row" onsubmit="return false;">
+      <input id="pin" type="password" inputmode="numeric" minlength="3" maxlength="8" placeholder="Ex.: 2468" style="flex:1; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2">
+      <button id="btnLogin" class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+    <div id="msg" class="muted" style="margin-top:8px"></div>
+  </section>
+
+  <!-- PLAYER -->
+  <footer class="player">
+    <div class="player-shell">
+      <div class="p-top">
+        <div>
+          <div class="track-title" id="nowTitle">Nada tocando</div>
+          <div class="track-sub" id="nowFolder">—</div>
+        </div>
+        <div class="track-right">
+          <div id="nowTime" class="muted">0:00 / 0:00</div>
+          <button id="btnKebab" class="kebab" title="Opções">⋯</button>
+        </div>
+      </div>
+      <div class="progress"><input id="seek" class="seek" type="range" min="0" max="1000" value="0" /></div>
+      <div class="p-controls">
+        <button id="pHome"   class="p-btn" title="Início">🏠</button>
+        <button id="pSearch" class="p-btn" title="Buscar">🔎</button>
+        <button id="pPrev"   class="p-btn" title="Voltar">⏮️</button>
+        <button id="pPlay"   class="p-play" title="Play/Pause">▶</button>
+        <button id="pNext"   class="p-btn" title="Avançar">⏭️</button>
+        <button id="pShuffle" class="p-btn" title="Shuffle">🔀</button>
+        <button id="pRepeat"  class="p-btn" title="Repeat">🔁</button>
+        <div style="position:relative">
+          <button id="pVolume"  class="p-btn" title="Volume">🔊</button>
+        </div>
+      </div>
+    </div>
+    <audio id="audioA" crossorigin="anonymous"></audio>
+    <audio id="audioB" crossorigin="anonymous" style="display:none"></audio>
+  </footer>
+
+<script>
+  // ===== Chaves de storage =====
+  const THEME_KEY = "loove_theme_v1";
+  const CFG_PREFS_KEY = "loove_cfg_prefs_v1";
+  const CFG_LANG_KEY = "loove_cfg_lang_v1";
+  const CFG_MIX_KEY = "loove_cfg_mix_v1";
+  const PLAYBACK_KEY = "loove_playback_v1";
+
+  const el = id => document.getElementById(id);
+
+  // ===== Navegação básica (mantém layout) =====
+  const VIEWS = ["viewHome","viewList","viewFavs","viewPlaylists","viewDownloads","viewBilling","viewSettings","viewNotify","viewHelp","viewAccount"];
+  function show(id){ const x = el(id); if(x) x.style.display = ""; }
+  function hide(id){ const x = el(id); if(x) x.style.display = "none"; }
+  function showOnly(viewId){ VIEWS.forEach(v => hide(v)); show(viewId); if(viewId==="viewSettings") initSettingsPanel(); }
+
+  // Drawer
+  const backdrop = el("menuBackdrop");
+  const userMenu = el("userMenu");
+  const userBtn = el("userBtn");
+  function closeMenu(){ userMenu.classList.remove("open"); backdrop.classList.remove("open"); }
+  function openMenu(){ userMenu.classList.add("open"); backdrop.classList.add("open"); }
+  userBtn?.addEventListener("click", openMenu);
+  backdrop?.addEventListener("click", closeMenu);
+  userMenu?.addEventListener("click", (e)=>{ if(e.target.classList.contains("mi")) closeMenu(); });
+
+  // Rotas do menu
+  const routes = {
+    home:      ()=> showOnly("viewHome"),
+    account:   ()=> showOnly("viewAccount"),
+    search:    ()=> alert("Buscar: digite na caixa de busca"),
+    playlists: ()=> showOnly("viewPlaylists"),
+    downloads: ()=> showOnly("viewDownloads"),
+    favs:      ()=> showOnly("viewFavs"),
+    billing:   ()=> showOnly("viewBilling"),
+    settings:  ()=> showOnly("viewSettings"),
+    notify:    ()=> showOnly("viewNotify"),
+    help:      ()=> showOnly("viewHelp"),
+    logout:    ()=> alert("Logout: implemente conforme sua API")
+  };
+  document.querySelectorAll(".menu .mi").forEach(btn=>{ btn.addEventListener("click", ()=>{ const act = btn.dataset.act; if(routes[act]) routes[act](); }); });
+
+  // ======= TEMAS =======
+  function applyTheme(theme){
+    const root = document.documentElement;
+    const valid = ["atual","rosa","verde","black"];
+    const t = valid.includes(theme) ? theme : "atual";
+    root.setAttribute("data-theme", t);
+    try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
+    paintThemeActive(t);
+    updateThemeSummary(t);
+  }
+
+  function paintThemeActive(t){
+    document.querySelectorAll('#themeRow [data-theme]').forEach(b=> b.classList.remove('active'));
+    const hit = document.querySelector('#themeRow [data-theme="'+t+'"]');
+    if(hit) hit.classList.add('active');
+  }
+
+  function updateThemeSummary(t){
+    const map = {atual:"Atual (padrão)", rosa:"Rosa Neon", verde:"Verde Neon", black:"Black"};
+    const sum = el("themeSummary");
+    if(sum) sum.textContent = "Tema selecionado: " + (map[t] || "Atual");
+  }
+
+  function initThemeRow(){
+    const row = el("themeRow");
+    if(!row) return;
+    row.querySelectorAll("[data-theme]").forEach(btn=>{
+      btn.addEventListener("click", ()=> applyTheme(btn.getAttribute("data-theme")));
+    });
+    // Primeira pintura
+    const saved = (localStorage.getItem(THEME_KEY) || "atual");
+    applyTheme(saved);
+  }
+
+  // ======= CONFIGURAÇÕES =======
+  function initSettingsPanel(){
+    // Preferências musicais
+    const prefRow = el("prefChips");
+    const prefSummary = el("prefSummary");
+    function paintPrefs(){
+      const arr = JSON.parse(localStorage.getItem(CFG_PREFS_KEY) || "[]");
+      prefRow?.querySelectorAll("[data-genre]").forEach(b=> {
+        const g = b.getAttribute("data-genre");
+        b.classList.toggle("active", arr.includes(g));
+      });
+      if(prefSummary) prefSummary.textContent = arr.length ? "Selecionados: " + arr.join(", ") : "Nenhum gênero selecionado.";
+    }
+    prefRow?.querySelectorAll("[data-genre]").forEach(b=> {
+      b.addEventListener("click", ()=>{
+        let arr = [];
+        try{ arr = JSON.parse(localStorage.getItem(CFG_PREFS_KEY) || "[]"); }catch{ arr = []; }
+        const g = b.getAttribute("data-genre");
+        const i = arr.indexOf(g);
+        if(i>=0) arr.splice(i,1); else arr.push(g);
+        localStorage.setItem(CFG_PREFS_KEY, JSON.stringify(arr));
+        paintPrefs();
+      });
+    });
+    paintPrefs();
+
+    // Idioma
+    const sel = el("cfgLang");
+    if(sel){
+      const saved = localStorage.getItem(CFG_LANG_KEY) || "pt";
+      sel.value = saved;
+      sel.onchange = ()=> localStorage.setItem(CFG_LANG_KEY, sel.value);
+    }
+
+    // Mix DJ
+    const mix = el("cfgMix"); const mixVal = el("cfgMixVal");
+    let mixSaved = Number(localStorage.getItem(CFG_MIX_KEY) || 0);
+    mixSaved = Math.max(0, Math.min(12, mixSaved||0));
+    if(mix && mixVal){
+      mix.value = String(mixSaved);
+      mixVal.textContent = mixSaved + "s";
+      mix.oninput = ()=>{ mixVal.textContent = mix.value + "s"; };
+      mix.onchange = ()=> localStorage.setItem(CFG_MIX_KEY, String(mix.value));
+    }
+
+    // Volume do app
+    const vol = el("cfgVol");
+    if(vol){
+      const savedVol = Number(localStorage.getItem("loove_cfg_vol_v1") || 1);
+      vol.value = savedVol;
+      vol.oninput = ()=>{ localStorage.setItem("loove_cfg_vol_v1", vol.value); };
+    }
+
+    // Tema
+    initThemeRow();
+
+    // Limpar memória de reprodução
+    el("btnClearPlayback")?.addEventListener("click", ()=>{
+      localStorage.removeItem(PLAYBACK_KEY);
+      alert("Memória de reprodução limpa.");
+    });
+  }
+
+  // Iniciar com tema salvo mesmo fora das Configurações
+  (function bootstrapTheme(){
+    const saved = (localStorage.getItem(THEME_KEY) || "atual");
+    document.documentElement.setAttribute("data-theme", saved);
+  })();
+
+  // ===== Player mínimo para não quebrar layout =====
+  const audioA = el("audioA"); const audioB = el("audioB");
+  let audio = audioA; let aux = audioB;
+  const seek = el("seek"); const nowTitle = el("nowTitle"); const nowTime = el("nowTime");
+  let duration = 0;
+
+  function formatTime(s){ s = Math.max(0, Math.floor(s||0)); const m = Math.floor(s/60); const r = s%60; return m+":"+String(r).padStart(2,"0"); }
+  function updateTimeUI(){
+    if(!audio) return;
+    const cur = audio.currentTime||0; const dur = audio.duration||0; duration = dur;
+    if(seek && dur) seek.value = Math.floor(cur/dur*1000);
+    if(nowTime) nowTime.textContent = formatTime(cur)+" / "+(isFinite(dur)?formatTime(dur):"0:00");
+  }
+  seek?.addEventListener("input", ()=>{ if(!audio || !duration) return; audio.currentTime = (seek.value/1000)*duration; });
+  ["timeupdate","loadedmetadata","play","pause","ended"].forEach(ev=> audioA.addEventListener(ev, updateTimeUI));
+
+  // ===== Eventos dos botões rápidos no player =====
+  el("pHome")?.addEventListener("click", ()=> showOnly("viewHome"));
+  el("pSearch")?.addEventListener("click", ()=> document.getElementById("q").focus());
+  el("pPlay")?.addEventListener("click", ()=>{ if(audio.paused) audio.play(); else audio.pause(); });
+
+  // ===== Boot =====
+  function boot(){
+    showOnly("viewHome");
+    initThemeRow(); // garante tema ativo globalmente
+  }
+  document.addEventListener("DOMContentLoaded", boot);
+</script>
+</body>
+</html>
