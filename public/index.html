@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="atual">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loove • Login</title>
+  <style>
+    :root{ --bg:#0b111e; --card:#10192e; --muted:#a2b0c6; --text:#e6ecf2; }
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1000px 600px at 10% 10%, rgba(49,225,255,.08), transparent 60%), 
+                  radial-gradient(800px 500px at 110% 10%, rgba(255,47,179,.07), transparent 60%), var(--bg);
+         color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+         min-height:100vh; padding-bottom:17px;}
+    .card{ background:var(--card); border-radius:22px; box-shadow:0 10px 40px rgba(0,0,0,.35); 
+            padding:24px; }
+    .btn.btn-primary{ background:linear-gradient(180deg,#ffa62b,#ff8c00); color:#1a1a1a; font-weight:800; 
+                       border:none; border-radius:14px; padding:12px 14px; cursor:pointer }
+    input{ width:100%; padding:12px 14px; border-radius:14px; 
+           border:1px solid rgba(255,255,255,.12); background:#0d1320; color:var(--text) }
+    .muted{ color:var(--muted) }
+    .wrap{ max-width:980px; margin:0 auto; padding:12px }
+    /* Estado inicial seguro: app e player ocultos até autenticar */
+    #app{ display:none }
+    footer.player{ display:none }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app"></div>
+
+  <!-- MODAL do seletor de playlist (placeholder para manter layout) -->
+  <div aria-hidden="true" class="pl-modal" id="plModal"></div>
+
+  <!-- =================== PLAYER =================== -->
+  <footer class="player"></footer>
+
+  <!-- LOGIN -->
+  <section class="card" id="viewLogin" style="max-width:420px;margin:60px auto; display:block">
+    <div style="text-align:center; margin-top:8px">
+      <picture>
+        <source srcset="/logolove.webp" type="image/webp">
+        <img src="/logolove.webp" alt="Loove music" style="width:160px; filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))">
+      </picture>
+    </div>
+    <h2 style="text-align:center;margin:12px 0 4px">Seja Bem-Vindo</h2>
+    <p class="muted" style="text-align:center;margin-top:0">"Aqui todo mundo ama música"</p>
+    <form id="formLogin" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px; margin-top:12px">
+      <input id="email" type="email" placeholder="E-mail" autocomplete="username">
+      <input id="password" type="password" placeholder="Senha" autocomplete="current-password">
+      <button class="btn btn-primary" type="submit">Entrar</button>
+      <div id="msg" class="muted" style="margin-top:4px"></div>
+    </form>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px">
+      <a id="lnkForgot" href="#" class="muted" style="text-decoration:none">Esqueci a senha</a>
+      <a id="lnkSignup" href="#" class="muted" style="text-decoration:none">Não tem conta? <strong>CADASTRAR</strong></a>
+    </div>
+  </section>
+
+  <!-- CADASTRO -->
+  <section class="card" id="viewSignup" style="max-width:420px;margin:60px auto; display:none">
+    <div style="text-align:center; margin-top:8px">
+      <picture>
+        <source srcset="/logolove.webp" type="image/webp">
+        <img src="/logolove.webp" alt="Loove music" style="width:160px; filter:drop-shadow(0 6px 24px rgba(0,0,0,.45))">
+      </picture>
+    </div>
+    <h2 style="text-align:center;margin:12px 0 4px">Criar conta</h2>
+    <p class="muted" style="text-align:center;margin-top:0">Use seu e-mail para acessar o Loove</p>
+    <form id="formSignup" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px; margin-top:12px">
+      <input id="signupName" type="text" placeholder="Seu nome" autocomplete="name">
+      <input id="signupEmail" type="email" placeholder="E-mail" autocomplete="email">
+      <input id="signupPass" type="password" placeholder="Senha" autocomplete="new-password">
+      <input id="signupPass2" type="password" placeholder="Confirmar senha" autocomplete="new-password">
+      <label class="muted" style="display:flex; align-items:center; gap:8px">
+        <input id="togglePass" type="checkbox"> Mostrar senha
+      </label>
+      <button class="btn btn-primary" type="submit">Criar conta</button>
+      <div id="msgSignup" class="muted" style="margin-top:4px"></div>
+    </form>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px">
+      <a id="lnkBackLogin" href="#" class="muted" style="text-decoration:none">Já tem conta? Entrar</a>
+    </div>
+  </section>
+
+  <!-- Supabase SDK -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.js"></script>
+
+  <!-- Wiring (NÃO deixar vazio) -->
+  <script id="supabase-wiring">
+  (function(){ 
+    function el(id){return document.getElementById(id);}
+    function showLogin(){ 
+      const vL=el('viewLogin'), vS=el('viewSignup'); 
+      if(vL) vL.style.display='block'; if(vS) vS.style.display='none'; 
+      const app=el('app'); if(app) app.style.display='none';
+      const pf=document.querySelector('footer.player'); if(pf) pf.style.display='none';
+    }
+    function showSignup(){
+      const vL=el('viewLogin'), vS=el('viewSignup'); 
+      if(vL) vL.style.display='none'; if(vS) vS.style.display='block';
+      const app=el('app'); if(app) app.style.display='none';
+      const pf=document.querySelector('footer.player'); if(pf) pf.style.display='none';
+    }
+    function showApp(){
+      const app=el('app'); if(app) app.style.display='block';
+      const vL=el('viewLogin'); if(vL) vL.style.display='none';
+      const vS=el('viewSignup'); if(vS) vS.style.display='none';
+      const pf=document.querySelector('footer.player'); if(pf) pf.style.display='block';
+      if(typeof boot==='function') boot();
+    }
+
+    // Cole suas chaves do Supabase aqui
+    const SUPABASE_URL = "https://YOUR-PROJECT-id.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+    const RESET_REDIRECT_TO = "https://api.djafonso.com/reset.html";
+
+    let supa=null; 
+    function sb(){ 
+      if(!supa){ 
+        if(!(window.supabase && window.supabase.createClient)) return null; 
+        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); 
+      } 
+      return supa; 
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // Alternância
+      el('lnkSignup')?.addEventListener('click', (e)=>{e.preventDefault();showSignup();});
+      el('lnkBackLogin')?.addEventListener('click', (e)=>{e.preventDefault();showLogin();});
+
+      // Mostrar/ocultar senha no cadastro
+      el('togglePass')?.addEventListener('change', ()=>{ 
+        const t = el('togglePass').checked ? 'text':'password';
+        if(el('signupPass'))  el('signupPass').type  = t;
+        if(el('signupPass2')) el('signupPass2').type = t;
+      });
+
+      // Login
+      el('formLogin')?.addEventListener('submit', async (ev)=>{ 
+        ev.preventDefault(); 
+        const email=(el('email')?.value||'').trim();
+        const password=(el('password')?.value||'').trim();
+        const msg=el('msg');
+        if(!email||!password){ if(msg) msg.textContent='Preencha e-mail e senha.'; return; }
+        const client = sb();
+        if(!client){ if(msg) msg.textContent='Carregando autenticação... tente novamente.'; return; }
+        if(msg) msg.textContent='Entrando...';
+        const { error } = await client.auth.signInWithPassword({ email, password });
+        if(error){ if(msg) msg.textContent = error.message || 'Não foi possível entrar.'; return; }
+        if(msg) msg.textContent='Login OK!';
+        showApp();
+      });
+
+      // Cadastro
+      el('formSignup')?.addEventListener('submit', async (ev)=>{ 
+        ev.preventDefault();
+        const name=(el('signupName')?.value||'').trim();
+        const email=(el('signupEmail')?.value||'').trim();
+        const pass=(el('signupPass')?.value||'').trim();
+        const pass2=(el('signupPass2')?.value||'').trim();
+        const msg=el('msgSignup');
+        if(!email||!pass){ if(msg) msg.textContent='Preencha e-mail e senha.'; return; }
+        if(pass!==pass2){ if(msg) msg.textContent='As senhas não coincidem.'; return; }
+        const client = sb(); 
+        if(!client){ if(msg) msg.textContent='Carregando autenticação... tente novamente.'; return; }
+        if(msg) msg.textContent='Criando conta...';
+        const { error } = await client.auth.signUp({ email, password: pass, options: { data: { name } } });
+        if(error){ if(msg) msg.textContent = error.message || 'Não foi possível criar a conta.'; return; }
+        if(msg) msg.textContent='Conta criada! Verifique seu e-mail e faça login.';
+        const le=el('email'); if(le) le.value=email;
+        showLogin();
+      });
+
+      // Esqueci a senha
+      el('lnkForgot')?.addEventListener('click', async (ev)=>{ 
+        ev.preventDefault();
+        const email=(el('email')?.value||'').trim();
+        if(!email){ alert('Digite seu e-mail e clique novamente.'); return; }
+        const client = sb(); if(!client){ alert('Carregando autenticação...'); return; }
+        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: RESET_REDIRECT_TO });
+        if(error){ alert(error.message || 'Não foi possível enviar o e-mail.'); return; }
+        alert('Enviamos um e-mail com o link para redefinir sua senha.');
+      });
+
+      // Sessão (se SDK carregado)
+      const client = sb();
+      if(client){ 
+        client.auth.onAuthStateChange((_event, session)=>{ if(session){ showApp(); } else { showLogin(); } });
+        client.auth.getSession().then(({data})=>{ if(data?.session) showApp(); else showLogin(); }).catch(()=>showLogin());
+      } else { 
+        showLogin(); 
+      }
+    });
+  })();
+  </script>
+
+  <!-- Changelog -->
+  <!-- Edição 26 ({changelog}) = Login igual ao mock (sem PIN) visível por padrão; player aparece após login; Supabase Auth integrado; app oculto antes do login -->
+</body>
+</html>
