@@ -30,8 +30,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.js"></script>
   <script>
   // Cole as mesmas chaves do seu index
-  const SUPABASE_URL = "https://YOUR-PROJECT-id.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+  const SUPABASE_URL = "https://sirbuhnpfesfsfvwmspx.supabase.co";
+  const SUPABASE_ANON_KEY = "process.env.SUPABASE_KEY";
 
   let supa;
   function sb(){ if(!supa){ supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } return supa; }
