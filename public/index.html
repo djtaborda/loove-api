@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="atual" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Loove • App music DJ Afonso</title>
+
+  <!-- =====================================================
+       Edição 19.2 (2025-08-18, 02:21) = Fix "login some e app abre sozinho"
+       - Novo controle: body.auth-off força esconder #app e player com !important
+       - Mostra #app e player somente quando showApp() remove 'auth-off'
+       - Sem PIN. Supabase Auth (login/cadastro/reset).
+       - Layout original preservado.
+       ===================================================== -->
+
+  <style>
+    :root{
+      --bg: #0b111e;
+      --card: #10192e;
+      --muted: #a2b0c6;
+      --text: #e6ecf2;
+      --borda: rgba(255,255,255,.10);
+      --shadow: 0 10px 40px rgba(0,0,0,.35);
+      --grad-btn: linear-gradient(180deg,#ffa62b,#ff8c00);
+      --grad-bg-a: radial-gradient(1000px 600px at 10% 10%, rgba(49,225,255,.08), transparent 60%);
+      --grad-bg-b: radial-gradient(800px 500px at 110% 10%, rgba(255,47,179,.07), transparent 60%);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      background: var(--grad-bg-a), var(--grad-bg-b), var(--bg);
+      color: var(--text);
+      font: 16px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      min-height:100vh;
+      padding-bottom: 24px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a{ color:inherit; text-decoration:none; }
+    img{ max-width:100%; display:block; }
+
+    .wrap{ max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card{
+      background: var(--card);
+      border: 1px solid var(--borda);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .muted{ color: var(--muted); }
+
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; }
+    .btn.btn-primary{
+      background: var(--grad-btn);
+      color:#1a1a1a; font-weight:800; border:none;
+      border-radius:14px; padding:12px 14px; min-height:44px; width:100%;
+    }
+    input[type="text"], input[type="email"], input[type="password"], input[type="search"]{
+      width:100%; padding:12px 14px; border-radius:14px;
+      border:1px solid var(--borda); background:#0d1320; color:var(--text);
+      outline:none;
+    }
+    input::placeholder{ color:#93a2b8; }
+
+    footer.player{
+      position: sticky; bottom: 0; left: 0; right: 0;
+      margin: 20px auto 0;
+      background:#0c1426;
+      border:1px solid var(--borda);
+      border-radius:20px;
+      padding:12px 16px;
+      width:min(1100px, calc(100% - 20px));
+      box-shadow:var(--shadow);
+    }
+    .player-row{ display:flex; align-items:center; gap:14px; }
+    .player-cover{ width:44px; height:44px; border-radius:10px; background:#1e2a44; flex:none; }
+    .player-meta{ flex:1; min-width:0; }
+    .player-title{ font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .player-sub{ font-size:12px; color:var(--muted); }
+    .btn-round{ width:44px; height:44px; border-radius:999px; display:grid; place-items:center; border:none;
+                 background:var(--grad-btn); color:#1a1a1a; font-weight:900; cursor:pointer; }
+    .range{ width:100%; height:6px; border-radius:999px; background:#172038; appearance:none; outline:none; }
+    .range::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#fff; border:none; }
+
+    @media (max-width: 620px){
+      .player-row{ flex-wrap:wrap; gap:10px; }
+    }
+
+    /* ==== NOVO CONTROLE (fix): força esconder até autenticar ==== */
+    body.auth-off #app { display:none !important; visibility:hidden !important; }
+    body.auth-off footer.player { display:none !important; visibility:hidden !important; }
+  </style>
+</head>
+
+<body class="auth-off">
+
+  <div class="wrap" id="app">
+    <header style="text-align:center; margin-top:16px">
+      <img src="/logolove.webp" alt="App music DJ Afonso" style="width:94px; margin:0 auto 4px; filter: drop-shadow(0 8px 30px rgba(0,0,0,.4))">
+      <h1 style="font-size:28px; margin:8px 0 6px; letter-spacing:.8px">TODO MUNDO AMA MÚSICA</h1>
+      <div style="max-width:780px; margin:12px auto">
+        <div style="position:relative">
+          <input type="search" id="search" placeholder="Qual música você quer ouvir?" aria-label="Buscar música">
+          <span aria-hidden="true" style="position:absolute; left:12px; top:50%; translate:0 -50%; opacity:.6">🔎</span>
+        </div>
+      </div>
+    </header>
+  </div>
+
+  <div aria-hidden="true" class="pl-modal" id="plModal" hidden></div>
+
+  <footer class="player" role="region" aria-label="Player de música">
+    <div class="player-row" style="margin-bottom:8px">
+      <div class="player-cover" aria-hidden="true"></div>
+      <div class="player-meta">
+        <div class="player-title" id="playerTitle">Nada tocando</div>
+        <div class="player-sub" id="playerTime">0:00 / 0:00</div>
+      </div>
+      <div class="player-ctrls">
+        <button class="btn-round" id="btnPlay" title="Tocar/Pausar">▶</button>
+      </div>
+    </div>
+    <input type="range" min="0" max="100" value="0" class="range" id="progress" aria-label="Progresso da faixa" />
+  </footer>
+
+  <section class="card" id="viewLogin" style="max-width:420px;margin:60px auto; display:block">
+    <div style="text-align:center; margin-top:8px">
+      <picture>
+        <source srcset="/logolove.webp" type="image/webp">
+        <img src="/logolove.webp" alt="App music DJ Afonso" style="width:160px; filter: drop-shadow(0 6px 24px rgba(0,0,0,.45))">
+      </picture>
+    </div>
+    <h2 style="text-align:center;margin:12px 0 4px">Seja Bem-Vindo</h2>
+    <p class="muted" style="text-align:center;margin-top:0">"Aqui todo mundo ama música"</p>
+    <form id="formLogin" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px; margin-top:12px">
+      <label class="muted" for="email" style="font-size:12px">E-mail</label>
+      <input id="email" type="email" placeholder="E-mail" inputmode="email" autocomplete="username" required>
+      <label class="muted" for="password" style="font-size:12px">Senha</label>
+      <input id="password" type="password" placeholder="Senha" autocomplete="current-password" required>
+      <button class="btn btn-primary" type="submit">Entrar</button>
+      <div id="msg" class="muted" style="margin-top:4px; min-height:18px"></div>
+    </form>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px">
+      <a id="lnkForgot" href="#" class="muted">Esqueci a senha</a>
+      <a id="lnkSignup" href="#" class="muted">Não tem conta? <strong>CADASTRAR</strong></a>
+    </div>
+  </section>
+
+  <section class="card" id="viewSignup" style="max-width:420px;margin:60px auto; display:none">
+    <div style="text-align:center; margin-top:8px">
+      <picture>
+        <source srcset="/logolove.webp" type="image/webp">
+        <img src="/logolove.webp" alt="App music DJ Afonso" style="width:160px; filter: drop-shadow(0 6px 24px rgba(0,0,0,.45))">
+      </picture>
+    </div>
+    <h2 style="text-align:center;margin:12px 0 4px">Criar conta</h2>
+    <p class="muted" style="text-align:center;margin-top:0">Use seu e-mail para acessar o Loove</p>
+    <form id="formSignup" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px; margin-top:12px">
+      <label class="muted" for="signupName" style="font-size:12px">Seu nome</label>
+      <input id="signupName" type="text" placeholder="Seu nome" autocomplete="name">
+      <label class="muted" for="signupEmail" style="font-size:12px">E-mail</label>
+      <input id="signupEmail" type="email" placeholder="E-mail" autocomplete="email">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <div>
+          <label class="muted" for="signupPass" style="font-size:12px">Senha</label>
+          <input id="signupPass" type="password" placeholder="Senha" autocomplete="new-password">
+        </div>
+        <div>
+          <label class="muted" for="signupPass2" style="font-size:12px">Confirmar senha</label>
+          <input id="signupPass2" type="password" placeholder="Confirmar senha" autocomplete="new-password">
+        </div>
+      </div>
+      <label class="muted" style="display:flex; align-items:center; gap:8px">
+        <input id="togglePass" type="checkbox"> Mostrar senha
+      </label>
+      <button class="btn btn-primary" type="submit">Criar conta</button>
+      <div id="msgSignup" class="muted" style="margin-top:4px; min-height:18px"></div>
+    </form>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px">
+      <a id="lnkBackLogin" href="#" class="muted">Já tem conta? Entrar</a>
+    </div>
+  </section>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.js"></script>
+
+  <script id="supabase-wiring">
+  (function(){
+    function $id(id){ return document.getElementById(id); }
+    function lock(){ document.body.classList.add('auth-off'); }
+    function unlock(){ document.body.classList.remove('auth-off'); }
+
+    function showLogin(){
+      lock();
+      const vL=$id('viewLogin'), vS=$id('viewSignup');
+      if(vL) vL.style.display='block'; if(vS) vS.style.display='none';
+    }
+    function showSignup(){
+      lock();
+      const vL=$id('viewLogin'), vS=$id('viewSignup');
+      if(vL) vL.style.display='none'; if(vS) vS.style.display='block';
+    }
+    function showApp(){
+      const vL=$id('viewLogin'); if(vL) vL.style.display='none';
+      const vS=$id('viewSignup'); if(vS) vS.style.display='none';
+      unlock();
+      if(typeof boot==='function'){ boot(); }
+    }
+
+    const SUPABASE_URL  = "https://YOUR-PROJECT-id.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+    const RESET_REDIRECT_TO = "https://api.djafonso.com/reset.html";
+
+    let supa=null;
+    function sb(){
+      if(!supa){
+        if(!(window.supabase && window.supabase.createClient)) return null;
+        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      return supa;
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      lock();
+      showLogin();
+
+      $id('lnkSignup')?.addEventListener('click', (e)=>{ e.preventDefault(); showSignup(); });
+      $id('lnkBackLogin')?.addEventListener('click', (e)=>{ e.preventDefault(); showLogin(); });
+      $id('togglePass')?.addEventListener('change', ()=>{
+        const t = $id('togglePass').checked ? 'text' : 'password';
+        if($id('signupPass'))  $id('signupPass').type  = t;
+        if($id('signupPass2')) $id('signupPass2').type = t;
+      });
+
+      $id('formLogin')?.addEventListener('submit', async (ev)=>{
+        ev.preventDefault();
+        const email=($id('email')?.value||'').trim();
+        const password=($id('password')?.value||'').trim();
+        const msg=$id('msg');
+        if(!email || !password){ if(msg) msg.textContent='Preencha e-mail e senha.'; return; }
+        const client = sb(); if(!client){ if(msg) msg.textContent='Carregando autenticação...'; return; }
+        if(msg) msg.textContent='Entrando...';
+        const {{ error }} = await client.auth.signInWithPassword({{ email, password }});
+        if(error){{ if(msg) msg.textContent = error.message || 'Não foi possível entrar.'; return; }}
+        if(msg) msg.textContent='Login OK!';
+        showApp();
+      });
+
+      $id('formSignup')?.addEventListener('submit', async (ev)=>{
+        ev.preventDefault();
+        const name=($id('signupName')?.value||'').trim();
+        const email=($id('signupEmail')?.value||'').trim();
+        const pass=($id('signupPass')?.value||'').trim();
+        const pass2=($id('signupPass2')?.value||'').trim();
+        const msg=$id('msgSignup');
+        if(!email || !pass){ if(msg) msg.textContent='Preencha e-mail e senha.'; return; }
+        if(pass !== pass2){ if(msg) msg.textContent='As senhas não coincidem.'; return; }
+        const client = sb(); if(!client){ if(msg) msg.textContent='Carregando autenticação...'; return; }
+        if(msg) msg.textContent='Criando conta...';
+        const {{ error }} = await client.auth.signUp({{ email, password: pass, options: {{ data: {{ name }} }} }});
+        if(error){{ if(msg) msg.textContent = error.message || 'Não foi possível criar a conta.'; return; }}
+        if(msg) msg.textContent='Conta criada! Verifique seu e-mail e faça login.';
+        const le=$id('email'); if(le) le.value=email;
+        showLogin();
+      });
+
+      $id('lnkForgot')?.addEventListener('click', async (ev)=>{
+        ev.preventDefault();
+        const email=($id('email')?.value||'').trim();
+        if(!email){ alert('Digite seu e-mail no campo acima e clique novamente.'); return; }
+        const client = sb(); if(!client){ alert('Carregando autenticação...'); return; }
+        const {{ error }} = await client.auth.resetPasswordForEmail(email, {{ redirectTo: RESET_REDIRECT_TO }});
+        if(error){{ alert(error.message || 'Não foi possível enviar o e-mail.'); return; }}
+        alert('Enviamos um e-mail com o link para redefinir sua senha.');
+      });
+
+      const client = sb();
+      if(client){
+        client.auth.onAuthStateChange((_e, session)=>{ if(session){ showApp(); } else { showLogin(); } });
+        client.auth.getSession().then(({data})=>{ if(data?.session){ showApp(); } else { showLogin(); } }).catch(()=> showLogin());
+      }else{
+        showLogin();
+      }
+    });
+
+    if(typeof window.boot !== 'function'){ window.boot = function(){}; }
+  })();
+  </script>
+
+  <!-- Changelog: Edição 19.2 (2025-08-18, 02:21) — 'auth-off' evita que scripts do app exibam #app antes do login. -->
+</body>
+</html>
