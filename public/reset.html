@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redefinir senha • Loove</title>
+  <style>
+    body{margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+         background:#0b111e; color:#e6ecf2; display:flex; align-items:center; justify-content:center; min-height:100vh;}
+    .card{background:#10192e; border-radius:20px; padding:24px; width:100%; max-width:420px; box-shadow:0 10px 40px rgba(0,0,0,.35);}
+    h1{font-size:22px; margin:0 0 6px}
+    p{margin:0 0 14px; opacity:.8}
+    input{width:100%; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:#0d1320; color:#e6ecf2}
+    button{width:100%; padding:12px 14px; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg,#ffa62b,#ff8c00); color:#1a1a1a; font-weight:700}
+    .muted{opacity:.8; font-size:13px; margin-top:8px}
+  </style>
+</head>
+<body>
+  <section class="card">
+    <h1>Redefinir senha</h1>
+    <p>Defina uma nova senha para sua conta.</p>
+    <form id="formReset" onsubmit="return false;" style="display:flex; gap:10px; flex-direction:column; margin-top:10px">
+      <input id="pass1" type="password" autocomplete="new-password" placeholder="Nova senha">
+      <input id="pass2" type="password" autocomplete="new-password" placeholder="Confirmar nova senha">
+      <button type="submit">Salvar nova senha</button>
+      <div id="msg" class="muted"></div>
+    </form>
+  </section>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.js"></script>
+  <script>
+  // Cole as mesmas chaves do seu index
+  const SUPABASE_URL = "https://YOUR-PROJECT-id.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+
+  let supa;
+  function sb(){ if(!supa){ supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } return supa; }
+
+  // Alguns provedores mandam o token no fragmento #; este helper move para ? para o supabase-js ler certinho
+  (function normalizeHashToQuery(){
+    if(location.hash && !location.search){
+      const q = new URLSearchParams(location.hash.slice(1));
+      if(q.get('access_token')){
+        const url = location.origin + location.pathname + '?' + q.toString();
+        history.replaceState(null, '', url);
+      }
+    }
+  })();
+
+  document.getElementById('formReset')?.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const p1 = (document.getElementById('pass1')?.value || '').trim();
+    const p2 = (document.getElementById('pass2')?.value || '').trim();
+    const msg = document.getElementById('msg');
+    if(!p1 || !p2){ if(msg) msg.textContent='Preencha a nova senha nos dois campos.'; return; }
+    if(p1 !== p2){ if(msg) msg.textContent='As senhas não coincidem.'; return; }
+    if(msg) msg.textContent='Atualizando...';
+    try{
+      const { data, error } = await sb().auth.updateUser({ password: p1 });
+      if(error){ throw error; }
+      if(msg) msg.textContent='Senha alterada! Você já pode voltar e entrar no app.';
+    }catch(e){
+      if(msg) msg.textContent = e?.message || 'Não foi possível alterar a senha agora.';
+    }
+  });
+  </script>
+</body>
+</html>
