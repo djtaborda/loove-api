@@ -1,5 +1,5 @@
-// server.js — Loove API (ESM) — aceita credenciais WASABI_*, S3_* ou AWS_*
-// Mantém o layout (public/) e adiciona anti-cache apenas em /api/*.
+// server.js — Loove API (ESM)
+// Mantém layout (public/), anti-cache em /api/* e correções de SPA + SW.
 
 import express from "express";
 import path from "path";
@@ -14,19 +14,34 @@ import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/clien
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
-// ========= util =========
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+
 app.disable("x-powered-by");
-app.set("etag", false); // sem ETag
+app.set("etag", false);
+app.set("trust proxy", true); // (1) proxy
 
 app.use(compression());
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
-app.use(cors({ origin: true, credentials: true }));
 
-// ========= anti-cache só em /api/* =========
+// (2) CORS — restrinja só ao seu domínio
+const ALLOW_ORIGINS = [
+  "https://api.djafonso.com",
+  "https://www.djafonso.com"
+];
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // curl/postman
+      return cb(null, ALLOW_ORIGINS.includes(origin));
+    },
+    credentials: true
+  })
+);
+
+// Anti-cache apenas para /api/*
 app.use(/^\/api\//, (req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
@@ -36,7 +51,7 @@ app.use(/^\/api\//, (req, res, next) => {
   next();
 });
 
-// ========= env helpers (aceita vários prefixos) =========
+// ================= ENV / S3 =================
 const pickEnv = (...keys) => {
   for (const k of keys) {
     const v = process.env[k];
@@ -56,23 +71,20 @@ const S3_ENDPOINT = pickEnv("S3_ENDPOINT", "WASABI_ENDPOINT") || `https://s3.${S
 const S3_ACCESS_KEY_ID     = pickEnv("S3_ACCESS_KEY_ID", "WASABI_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID");
 const S3_SECRET_ACCESS_KEY = pickEnv("S3_SECRET_ACCESS_KEY", "WASABI_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY");
 
-// logs de diagnóstico seguros (sem vazar segredo)
 console.log("[S3] bucket:", S3_BUCKET || "(indefinido)");
 console.log("[S3] region:", S3_REGION);
 console.log("[S3] endpoint:", S3_ENDPOINT);
 console.log("[S3] keyId:", S3_ACCESS_KEY_ID ? "***" + S3_ACCESS_KEY_ID.slice(-4) : "(indefinido)");
 
-// ========= cliente S3/Wasabi =========
 const s3 = new S3Client({
   region: S3_REGION,
   endpoint: S3_ENDPOINT,
   forcePathStyle: true,
   credentials: (S3_ACCESS_KEY_ID && S3_SECRET_ACCESS_KEY)
     ? { accessKeyId: S3_ACCESS_KEY_ID, secretAccessKey: S3_SECRET_ACCESS_KEY }
-    : undefined // cai para provider chain; se não houver, dará erro claro
+    : undefined
 });
 
-// ========= auth simples =========
 const signToken = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 const auth = (req, res, next) => {
   const h = req.headers.authorization || "";
@@ -82,11 +94,12 @@ const auth = (req, res, next) => {
   catch { return res.status(401).json({ error: "invalid token" }); }
 };
 
-// ========= rotas públicas =========
+// ================= ROTAS PÚBLICAS =================
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "loove-api", ts: new Date().toISOString(), node: process.version, uptime: process.uptime() });
 });
 
+// (Opcional) — se não usar mais PIN, remova esta rota:
 app.post("/api/login", (req, res) => {
   const pin = req.body?.pin;
   if (!pin) return res.status(400).json({ error: "pin required" });
@@ -102,14 +115,12 @@ app.get("/api/me", (req, res) => {
   catch { return res.json({ auth: false }); }
 });
 
-// ========= helpers S3 =========
+// ================= HELPERS S3 =================
 const isAudio = (k="") => /\.(mp3|m4a|aac|wav|flac|ogg)$/i.test(k);
 
 async function listPrefixes(prefix="") {
   if (!S3_BUCKET) throw new Error("bucket-not-configured");
-  const out = await s3.send(new ListObjectsV2Command({
-    Bucket: S3_BUCKET, Prefix: prefix, Delimiter: "/", MaxKeys: 1000
-  }));
+  const out = await s3.send(new ListObjectsV2Command({ Bucket: S3_BUCKET, Prefix: prefix, Delimiter: "/", MaxKeys: 1000 }));
   return (out.CommonPrefixes || []).map(cp => {
     const p = cp.Prefix || "";
     return { prefix: p, name: p.replace(prefix, "").replace(/\/$/, "") };
@@ -118,9 +129,7 @@ async function listPrefixes(prefix="") {
 
 async function listObjects(prefix="", token=null) {
   if (!S3_BUCKET) throw new Error("bucket-not-configured");
-  const out = await s3.send(new ListObjectsV2Command({
-    Bucket: S3_BUCKET, Prefix: prefix, ContinuationToken: token || undefined, MaxKeys: 1000
-  }));
+  const out = await s3.send(new ListObjectsV2Command({ Bucket: S3_BUCKET, Prefix: prefix, ContinuationToken: token || undefined, MaxKeys: 1000 }));
   const items = (out.Contents || []).filter(o => isAudio(o.Key || "")).map(o => ({
     key: o.Key, name: path.basename(o.Key)
   }));
@@ -148,7 +157,7 @@ async function presign(key) {
   return await getSignedUrl(s3, new GetObjectCommand({ Bucket: S3_BUCKET, Key: key }), { expiresIn: 60 });
 }
 
-// ========= API de dados =========
+// ================= API DE DADOS =================
 app.get("/api/folders", async (req, res) => {
   try {
     const prefix = String(req.query.prefix || "");
@@ -197,23 +206,41 @@ app.get("/api/stream", async (req, res) => {
   }
 });
 
-// ========= static (mantém seu layout) =========
+// ================= STATIC (layout preservado) =================
 const publicDir = path.join(__dirname, "public");
 if (fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir, {
-    setHeaders(res, filePath) {
-      if (/\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(filePath)) {
-        res.setHeader("Cache-Control", "public, max-age=3600, immutable");
-      } else {
-        res.setHeader("Cache-Control", "no-cache");
+  app.use(
+    express.static(publicDir, {
+      setHeaders(res, filePath) {
+        // (3) sw.js SEM cache para evitar travar versões antigas
+        if (filePath.endsWith("/sw.js")) {
+          res.setHeader("Cache-Control", "no-cache");
+          res.removeHeader("ETag");
+          return;
+        }
+        if (/\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=3600, immutable");
+        } else {
+          res.setHeader("Cache-Control", "no-cache");
+        }
+        res.removeHeader("ETag");
       }
-      res.removeHeader("ETag");
-    }
-  }));
+    })
+  );
+
+  // Rota raiz
   app.get("/", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
+
+  // (4) Fallback SPA: qualquer GET HTML que não seja /api/* cai no index
+  app.get("*", (req, res, next) => {
+    if (req.method !== "GET") return next();
+    if (req.path.startsWith("/api/")) return next();
+    if (!req.accepts("html")) return next();
+    return res.sendFile(path.join(publicDir, "index.html"));
+  });
 }
 
-// ========= start =========
+// ================= START =================
 const PORT = Number(process.env.PORT || 10000);
 http.createServer(app).listen(PORT, () => {
   console.log(`✅ Server up on ${PORT}`);
